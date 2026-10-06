@@ -91,6 +91,7 @@
     <button role="tab" data-tab="dt">💡 Design Thinking 6 ขั้น</button>
     <button role="tab" data-tab="ideaboard">💡 กระดานไอเดีย</button>
     <button role="tab" data-tab="plan">📝 ออกแบบแผนการสอน</button>
+    <button role="tab" data-tab="library">🌐 คลังแบ่งปันไอเดีย</button>
     <button role="tab" data-tab="result">📊 ผลวิเคราะห์</button>
   </nav>
 </header>
@@ -194,6 +195,21 @@
     <button class="btn alt" id="exportJson">⬇️ ส่งออก (JSON)</button>
     <label class="btn alt" style="margin:0">⬆️ นำเข้า<input type="file" id="importJson" accept=".json" hidden></label>
     <button class="btn alt" id="clear">🗑️ ล้าง</button>
+  </div>
+  <button class="btn" style="width:100%; margin-top:16px; background:#10b981;" onclick="publishPlan()">☁️ เผยแพร่แผนนี้แบ่งปันให้เพื่อนครู (เข้าคลังส่วนรวม)</button>
+</section>
+
+<!-- ============ คลังแบ่งปัน ============ -->
+<section id="library" hidden>
+  <div class="card">
+    <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap;">
+      <h2 style="margin:0">🌐 คลังแบ่งปันแผนการสอนและไอเดีย</h2>
+      <button class="btn" onclick="fetchLibrary()">🔄 ดึงข้อมูลคลังล่าสุด</button>
+    </div>
+    <p class="muted">เปิดดูแผนการสอนและไอเดียที่เพื่อนครูนำมาแบ่งปัน ระบบจะนับสถิติการคลิกดูและคลิกโหลดไปใช้</p>
+    <div id="libraryGrid" class="grid" style="margin-top:16px;">
+      <p class="muted">กดปุ่ม "ดึงข้อมูลคลังล่าสุด" เพื่อโหลดข้อมูล...</p>
+    </div>
   </div>
 </section>
 
@@ -790,6 +806,112 @@ try {
     drawLines();
   }
 } catch(e) {}
+/* ---- Community Library Logic ---- */
+window.publishPlan = async () => {
+  const url = $("#gasUrl")?.value?.trim();
+  if(!url) return alert("กรุณาวางลิงก์ Google Sheets Web App ในแท็บ 'กระดานไอเดีย' ก่อนครับ");
+  
+  if(!currentUser) {
+    currentUser = prompt("คุณชื่ออะไร? (ใช้ระบุตัวตนเจ้าของแผน)") || "ไม่ระบุชื่อ";
+    localStorage.setItem("steamUser", currentUser);
+  }
+  
+  const id = "p_" + Date.now();
+  const title = $("#title").value || "แผนการสอนไม่มีชื่อ";
+  const subject = $("#subject").value || "-";
+  
+  const payload = {
+    action: "publish_plan",
+    id, title, subject, author: currentUser,
+    data: {
+      title: $("#title").value, grade: $("#grade").value, subject: $("#subject").value, hours: $("#hours").value,
+      objectives: $("#objectives").value, assessment: $("#assessment").value, materials: $("#materials").value,
+      steps: Object.fromEntries(FIELDS.map(f => [f, {tags: [], text: $("#"+f).value}]))
+    }
+  };
+  
+  try {
+    await fetch(url, { method: "POST", body: JSON.stringify(payload), headers: {"Content-Type": "text/plain;charset=utf-8"} });
+    alert("✅ เผยแพร่แผนขึ้นคลังเรียบร้อยแล้ว!");
+    showTab("library");
+    fetchLibrary();
+  } catch(e) { alert("❌ เกิดข้อผิดพลาด: " + e.message); }
+};
+
+window.fetchLibrary = async () => {
+  const url = $("#gasUrl")?.value?.trim();
+  if(!url) return alert("กรุณาวางลิงก์ Google Sheets Web App ในแท็บ 'กระดานไอเดีย' ก่อนครับ");
+  
+  $("#libraryGrid").innerHTML = "<p>กำลังโหลดคลังข้อมูล...</p>";
+  try {
+    const res = await fetch(url + "?action=get_library");
+    window.sharedLibraryData = await res.json();
+    
+    if (sharedLibraryData.length === 0) {
+      $("#libraryGrid").innerHTML = "<p class='muted'>ยังไม่มีแผนการสอนในคลัง เป็นคนแรกที่เริ่มแชร์สิครับ!</p>";
+      return;
+    }
+    
+    $("#libraryGrid").innerHTML = sharedLibraryData.map(item => `
+      <div class="card" style="border:1px solid #e2e8f0; box-shadow:none;">
+        <h3 style="margin-top:0">${item.title}</h3>
+        <p class="muted" style="font-size:12px; margin-bottom:8px">โดย: 👤 <b>${item.author}</b> | วิชา: ${item.subject}</p>
+        <div style="display:flex; gap:8px; font-size:11px; margin-bottom:12px;">
+          <span style="background:#dbeafe; color:#1e40af; padding:2px 6px; border-radius:4px;">👁️ เข้าดู ${item.views || 0} ครั้ง</span>
+          <span style="background:#dcfce3; color:#166534; padding:2px 6px; border-radius:4px;">⬇️ นำไปใช้ ${item.loads || 0} ครั้ง</span>
+        </div>
+        <div style="display:flex; gap:8px;">
+          <button class="btn alt" style="flex:1; padding:4px;" onclick="viewPlan('${item.id}')">👁️ ดูไอเดีย</button>
+          <button class="btn" style="flex:1; padding:4px;" onclick="loadSharedPlan('${item.id}')">⬇️ โหลดมาใช้</button>
+        </div>
+        <div id="preview-${item.id}" style="display:none; margin-top:12px; font-size:12px; background:#f8fafc; padding:8px; border-radius:4px; max-height:200px; overflow-y:auto;"></div>
+      </div>
+    `).join("");
+  } catch(e) { $("#libraryGrid").innerHTML = "<p style='color:red'>❌ โหลดข้อมูลไม่สำเร็จ: " + e.message + "</p>"; }
+};
+
+window.trackAction = (id, type) => {
+  const url = $("#gasUrl")?.value?.trim();
+  if(!url) return;
+  fetch(url, { method: "POST", body: JSON.stringify({action: "track", id, type}), headers: {"Content-Type": "text/plain;charset=utf-8"} }).catch(e=>console.log(e));
+};
+
+window.viewPlan = (id) => {
+  trackAction(id, "view");
+  const pData = window.sharedLibraryData.find(x => x.id === id)?.data;
+  if(pData) {
+    const pre = document.getElementById("preview-"+id);
+    pre.style.display = pre.style.display === "none" ? "block" : "none";
+    pre.innerHTML = `
+      <b>จุดประสงค์:</b><br>${pData.objectives.replace(/\n/g,'<br>')}<br><br>
+      <b>กิจกรรม (ย่อ):</b><br>
+      ${Object.values(pData.steps).filter(s => s.text.length > 5).map(s => s.text).join('<br>-----<br>')}
+    `;
+    
+    // Update local counter visually without refreshing
+    const badge = pre.parentElement.querySelector('span:nth-child(1)');
+    const count = parseInt(badge.innerText.match(/\d+/)[0]);
+    if (pre.style.display === "block") badge.innerText = `👁️ เข้าดู ${count + 1} ครั้ง`;
+  }
+};
+
+window.loadSharedPlan = (id) => {
+  if(!confirm("การโหลดข้อมูลจะทับแผนเดิมที่คุณกำลังพิมพ์อยู่ ยืนยันหรือไม่?")) return;
+  trackAction(id, "load");
+  
+  const pData = window.sharedLibraryData.find(x => x.id === id)?.data;
+  if(pData) {
+    fill(pData);
+    alert("โหลดแผนสำเร็จ! เปลี่ยนไปหน้าออกแบบแผนเพื่อแก้ไขได้เลย");
+    showTab("plan");
+    
+    // Update local counter visually
+    const card = document.getElementById("preview-"+id).parentElement;
+    const badge = card.querySelector('div > span:nth-child(2)');
+    const count = parseInt(badge.innerText.match(/\d+/)[0]);
+    badge.innerText = `⬇️ นำไปใช้ ${count + 1} ครั้ง`;
+  }
+};
 </script>
 </body>
 </html>

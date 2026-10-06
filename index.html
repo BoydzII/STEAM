@@ -49,6 +49,21 @@
   td,th{border:1px solid var(--line);padding:8px;text-align:left;vertical-align:top}
   th{background:#f3f4f6}
   @media print{header,nav,.actions,.noprint{display:none!important}main>section:not(#result){display:none!important}body{background:#fff}}
+  /* ---- Print (PDF) Styles ---- */
+  @media print {
+    body { background: #fff; color: #000; font-size: 11pt; padding: 0; }
+    header, nav, .actions, button, #dtCards { display: none !important; }
+    main { max-width: 100%; margin: 0; padding: 0; box-shadow: none; }
+    .card { border: none; box-shadow: none; padding: 0; margin-bottom: 16px; page-break-inside: avoid; }
+    * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+    h2, h3 { color: #000; margin-top: 10pt; }
+    .row { page-break-inside: avoid; }
+    table { border-collapse: collapse; width: 100%; }
+    th, td { border: 1px solid #ccc; padding: 8px; }
+    #resultBox { padding: 0; }
+    /* Force page breaks if needed, but primarily avoid breaking cards */
+    @page { size: A4; margin: 15mm; }
+  }
 </style>
 </head>
 <body>

@@ -86,7 +86,7 @@
 </head>
 <body>
 <header style="position:relative">
-  <button class="btn alt" style="position:absolute; top:16px; right:16px; font-size:12px; padding:4px 8px;" onclick="window.location.href = window.location.pathname + '?v=' + new Date().getTime()">🔄 อัปเดตเวอร์ชัน (v.2)</button>
+  <button class="btn alt" style="position:absolute; top:16px; right:16px; font-size:12px; padding:4px 8px;" onclick="window.location.href = window.location.pathname + '?v=' + new Date().getTime()">🔄 อัปเดตเวอร์ชัน (v.3)</button>
   <h1>🎨 STEAM Active Learning Designer</h1>
   <p>เครื่องมือช่วยครูออกแบบแผนการสอนแบบ STEAM ด้วยกระบวนการ Design Thinking 6 ขั้น</p>
   <nav role="tablist">
@@ -805,7 +805,8 @@ window.addEventListener("pointerup", (e) => {
   }
 
   if (isLinking) {
-    const targetEl = document.elementFromPoint(e.clientX, e.clientY)?.closest(".note");
+    const elUnder = document.elementFromPoint(e.clientX, e.clientY);
+    const targetEl = elUnder ? elUnder.closest(".note") : null;
     if (targetEl && targetEl.id !== isLinking) {
       linksData.push({ f: isLinking, t: targetEl.id }); saveBoard();
     }
@@ -833,7 +834,8 @@ try {
 } catch(e) {}
 /* ---- Community Library Logic ---- */
 window.publishPlan = async () => {
-  const url = $("#gasUrl")?.value?.trim();
+  const gUrl = $("#gasUrl");
+  const url = (gUrl && gUrl.value) ? gUrl.value.trim() : "";
   if(!url) return alert("กรุณาวางลิงก์ Google Sheets Web App ในแท็บ 'กระดานไอเดีย' ก่อนครับ");
   
   if(!currentUser) {
@@ -851,7 +853,7 @@ window.publishPlan = async () => {
     data: {
       title: $("#title").value, grade: $("#grade").value, subject: $("#subject").value, hours: $("#hours").value,
       objectives: $("#objectives").value, assessment: $("#assessment").value, materials: $("#materials").value,
-      steps: Object.fromEntries(FIELDS.map(f => [f, {tags: [], text: $("#"+f).value}]))
+      steps: FIELDS.reduce((acc, f) => { acc[f] = {tags: [], text: $("#"+f).value}; return acc; }, {})
     }
   };
   
@@ -864,7 +866,8 @@ window.publishPlan = async () => {
 };
 
 window.fetchLibrary = async () => {
-  const url = $("#gasUrl")?.value?.trim();
+  const gUrl = $("#gasUrl");
+  const url = (gUrl && gUrl.value) ? gUrl.value.trim() : "";
   if(!url) return alert("กรุณาวางลิงก์ Google Sheets Web App ในแท็บ 'กระดานไอเดีย' ก่อนครับ");
   
   $("#libraryGrid").innerHTML = "<p>กำลังโหลดคลังข้อมูล...</p>";
@@ -896,14 +899,16 @@ window.fetchLibrary = async () => {
 };
 
 window.trackAction = (id, type) => {
-  const url = $("#gasUrl")?.value?.trim();
+  const gUrl = $("#gasUrl");
+  const url = (gUrl && gUrl.value) ? gUrl.value.trim() : "";
   if(!url) return;
   fetch(url, { method: "POST", body: JSON.stringify({action: "track", id, type}), headers: {"Content-Type": "text/plain;charset=utf-8"} }).catch(e=>console.log(e));
 };
 
 window.viewPlan = (id) => {
   trackAction(id, "view");
-  const pData = window.sharedLibraryData.find(x => x.id === id)?.data;
+  const found = window.sharedLibraryData.find(x => x.id === id);
+  const pData = found ? found.data : null;
   if(pData) {
     const pre = document.getElementById("preview-"+id);
     pre.style.display = pre.style.display === "none" ? "block" : "none";
@@ -924,7 +929,8 @@ window.loadSharedPlan = (id) => {
   if(!confirm("การโหลดข้อมูลจะทับแผนเดิมที่คุณกำลังพิมพ์อยู่ ยืนยันหรือไม่?")) return;
   trackAction(id, "load");
   
-  const pData = window.sharedLibraryData.find(x => x.id === id)?.data;
+  const found = window.sharedLibraryData.find(x => x.id === id);
+  const pData = found ? found.data : null;
   if(pData) {
     fill(pData);
     alert("โหลดแผนสำเร็จ! เปลี่ยนไปหน้าออกแบบแผนเพื่อแก้ไขได้เลย");

@@ -73,6 +73,11 @@
   .note:hover .del-btn { display:flex; }
   .note .link-dot { position:absolute; bottom:-6px; left:calc(50% - 8px); width:16px; height:16px; background:#3b82f6; border-radius:50%; cursor:crosshair; border:2px solid #fff; box-shadow:0 0 4px rgba(0,0,0,0.3); transition:transform 0.1s;}
   .note .link-dot:hover { transform:scale(1.3); }
+  .note .tools { position:absolute; top:-14px; left:0; width:100%; display:none; justify-content:center; gap:4px; }
+  .note:hover .tools { display:flex; }
+  .color-btn { width:16px; height:16px; border-radius:50%; border:1px solid rgba(0,0,0,0.2); cursor:pointer; }
+  .note .add-branch { position:absolute; top:calc(50% - 12px); right:-12px; background:#22c55e; color:#fff; border:none; border-radius:50%; width:24px; height:24px; cursor:pointer; display:none; align-items:center; justify-content:center; font-size:14px; font-weight:bold; box-shadow:0 2px 4px rgba(0,0,0,0.2); }
+  .note:hover .add-branch { display:flex; }
 </style>
 </head>
 <body>
@@ -601,6 +606,14 @@ sel.onchange = (e) => {
   }
 };
 /* ---- Idea Board Logic ---- */
+const NOTE_COLORS = {
+  yellow: {bg: "#fef08a", border: "#facc15"},
+  blue:   {bg: "#bfdbfe", border: "#60a5fa"},
+  green:  {bg: "#bbf7d0", border: "#4ade80"},
+  pink:   {bg: "#fbcfe8", border: "#f472b6"},
+  purple: {bg: "#e9d5ff", border: "#c084fc"}
+};
+
 let nodesData = {};
 let linksData = [];
 const board = $("#board");
@@ -609,26 +622,55 @@ let isDragging = null, isLinking = null, tempX = 0, tempY = 0;
 
 function saveBoard() { localStorage.setItem("steamBoard", JSON.stringify({nodes: nodesData, links: linksData})); }
 
-function createNote(x, y, text="", id=null) {
+window.changeColor = (id, c) => {
+  if(!nodesData[id]) return;
+  nodesData[id].color = c;
+  nodesData[id].el.style.background = NOTE_COLORS[c].bg;
+  nodesData[id].el.style.borderColor = NOTE_COLORS[c].border;
+  saveBoard();
+};
+
+window.branchNote = (parentId) => {
+  const p = nodesData[parentId];
+  if(!p) return;
+  const newId = createNote(p.x + 180, p.y, "", null, p.color);
+  linksData.push({f: parentId, t: newId});
+  saveBoard(); drawLines();
+};
+
+function createNote(x, y, text="", id=null, color="yellow") {
+  const isNew = !id;
   id = id || "n" + Date.now();
   const el = document.createElement("div");
   el.className = "note";
   el.style.left = x + "px"; el.style.top = y + "px";
   el.id = id;
+  
+  const colorsHtml = Object.keys(NOTE_COLORS).map(k => 
+    `<div class="color-btn" style="background:${NOTE_COLORS[k].bg}" onpointerdown="event.stopPropagation(); changeColor('${id}', '${k}')"></div>`
+  ).join('');
+
   el.innerHTML = `
-    <button class="del-btn" onclick="deleteNote('${id}')">✕</button>
+    <div class="tools">${colorsHtml}</div>
+    <button class="del-btn" onpointerdown="event.stopPropagation(); deleteNote('${id}')">✕</button>
+    <button class="add-branch" onpointerdown="event.stopPropagation(); branchNote('${id}')" title="สร้างหัวข้อย่อยเชื่อมต่อทันที">➕</button>
     <div contenteditable="true" oninput="nodesData['${id}'].text=this.innerText; saveBoard();" onpointerdown="event.stopPropagation()">${text}</div>
     <div class="link-dot"></div>
   `;
-  nodesData[id] = { id, x, y, text, el };
+  nodesData[id] = { id, x, y, text, el, color };
   board.appendChild(el);
+  changeColor(id, color);
   saveBoard();
   
   el.onpointerdown = (e) => {
-    if(e.target.className === "del-btn" || e.target.hasAttribute("contenteditable")) return;
+    if(e.target.hasAttribute("contenteditable")) return;
     if(e.target.className === "link-dot") { isLinking = id; e.stopPropagation(); board.setPointerCapture(e.pointerId); return; }
     isDragging = id; el.classList.add("dragging"); board.setPointerCapture(e.pointerId);
   };
+  
+  if (isNew) {
+    setTimeout(() => { const ce = el.querySelector('[contenteditable]'); if(ce) ce.focus(); }, 50);
+  }
   return id;
 }
 
@@ -694,7 +736,7 @@ try {
   if (b) {
     const data = JSON.parse(b);
     linksData = data.links || [];
-    Object.values(data.nodes || {}).forEach(n => createNote(n.x, n.y, n.text, n.id));
+    Object.values(data.nodes || {}).forEach(n => createNote(n.x, n.y, n.text, n.id, n.color || "yellow"));
     drawLines();
   }
 } catch(e) {}

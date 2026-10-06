@@ -736,8 +736,8 @@ function createNote(x, y, text="", id=null, color="yellow", owner=null) {
   
   el.onpointerdown = (e) => {
     if(e.target.hasAttribute("contenteditable")) return;
-    if(e.target.className === "link-dot") { isLinking = id; e.stopPropagation(); board.setPointerCapture(e.pointerId); return; }
-    isDragging = id; el.classList.add("dragging"); board.setPointerCapture(e.pointerId);
+    if(e.target.className === "link-dot") { isLinking = id; e.stopPropagation(); el.setPointerCapture(e.pointerId); return; }
+    isDragging = id; el.classList.add("dragging"); el.setPointerCapture(e.pointerId);
   };
   
   if (isNew) {
@@ -771,7 +771,8 @@ board.ondblclick = (e) => {
   if (e.target === board || e.target.id === "boardLines") createNote(e.offsetX - 75, e.offsetY - 20);
 };
 
-board.onpointermove = (e) => {
+window.addEventListener("pointermove", (e) => {
+  if (!isDragging && !isLinking) return;
   const rect = board.getBoundingClientRect();
   const mx = e.clientX - rect.left, my = e.clientY - rect.top;
   if (isDragging) {
@@ -782,9 +783,15 @@ board.onpointermove = (e) => {
   } else if (isLinking) {
     tempX = mx; tempY = my; drawLines();
   }
-};
+});
 
-board.onpointerup = (e) => {
+window.addEventListener("pointerup", (e) => {
+  if (!isDragging && !isLinking) return;
+  const activeId = isDragging || isLinking;
+  if (activeId && nodesData[activeId]) {
+    try { nodesData[activeId].el.releasePointerCapture(e.pointerId); } catch(err) {}
+  }
+
   if (isLinking) {
     const targetEl = document.elementFromPoint(e.clientX, e.clientY)?.closest(".note");
     if (targetEl && targetEl.id !== isLinking) {
@@ -793,7 +800,7 @@ board.onpointerup = (e) => {
   }
   if (isDragging && nodesData[isDragging]) nodesData[isDragging].el.classList.remove("dragging");
   isDragging = null; isLinking = null; drawLines();
-};
+});
 
 $("#addNoteBtn").onclick = () => createNote(50, 50, "ไอเดียใหม่");
 $("#clearBoardBtn").onclick = () => {

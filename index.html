@@ -78,10 +78,12 @@
   .color-btn { width:16px; height:16px; border-radius:50%; border:1px solid rgba(0,0,0,0.2); cursor:pointer; }
   .note .add-branch { position:absolute; top:calc(50% - 12px); right:-12px; background:#22c55e; color:#fff; border:none; border-radius:50%; width:24px; height:24px; cursor:pointer; display:none; align-items:center; justify-content:center; font-size:14px; font-weight:bold; box-shadow:0 2px 4px rgba(0,0,0,0.2); }
   .note:hover .add-branch { display:flex; }
+  .note .owner { position:absolute; bottom:4px; right:6px; font-size:9px; color:rgba(0,0,0,0.4); pointer-events:none; }
 </style>
 </head>
 <body>
-<header>
+<header style="position:relative">
+  <button class="btn alt" style="position:absolute; top:16px; right:16px; font-size:12px; padding:4px 8px;" onclick="window.location.href = window.location.pathname + '?v=' + new Date().getTime()">🔄 ล้างแคช / อัปเดตเวอร์ชัน</button>
   <h1>🎨 STEAM Active Learning Designer</h1>
   <p>เครื่องมือช่วยครูออกแบบแผนการสอนแบบ STEAM ด้วยกระบวนการ Design Thinking 6 ขั้น</p>
   <nav role="tablist">
@@ -142,14 +144,19 @@
 <!-- ============ กระดานไอเดีย ============ -->
 <section id="ideaboard" hidden>
   <div class="card" style="display:flex; flex-direction:column; height: 80vh;">
-    <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
-      <h2 style="margin:0">💡 กระดานไอเดีย (Idea Board)</h2>
+    <div style="display:flex; justify-content:space-between; align-items:flex-end; flex-wrap:wrap; gap:8px;">
       <div>
-        <button class="btn" id="addNoteBtn">➕ เพิ่มโพสต์อิท</button>
-        <button class="btn alt" id="clearBoardBtn">🗑️ ล้างกระดาน</button>
+        <h2 style="margin:0">💡 กระดานไอเดีย (Idea Board)</h2>
+        <p class="muted" style="margin:4px 0 0 0">ดับเบิลคลิกสร้างโพสต์อิท, ลากเพื่อย้าย, ลากจุดสีน้ำเงินเพื่อวาดเส้นเชื่อมโยง</p>
+      </div>
+      <div style="display:flex; gap:6px; align-items:center; flex-wrap:wrap;">
+        <input type="text" id="gasUrl" placeholder="🔗 วางลิงก์ Google Sheets Web App ที่นี่" style="width:200px; padding:6px; font-size:12px; border:1px solid #ccc; border-radius:4px;" onchange="localStorage.setItem('gasUrl', this.value)">
+        <button class="btn" onclick="syncToCloud()" style="background:#8b5cf6; padding:6px 10px; font-size:12px;">☁️ เซฟขึ้นคลาวด์</button>
+        <button class="btn alt" onclick="syncFromCloud()" style="padding:6px 10px; font-size:12px;">⬇️ โหลดข้อมูล</button>
+        <button class="btn" id="addNoteBtn" style="padding:6px 10px; font-size:12px;">➕ เพิ่มโพสต์อิท</button>
+        <button class="btn alt" id="clearBoardBtn" style="padding:6px 10px; font-size:12px;">🗑️ ล้างกระดาน</button>
       </div>
     </div>
-    <p class="muted" style="margin-top:8px">ดับเบิลคลิกพื้นที่ว่างเพื่อสร้างโพสต์อิท, จับลากเพื่อย้ายตำแหน่ง, ลากจุดสีน้ำเงินใต้โพสต์อิทเพื่อวาดเส้นเชื่อมโยงความคิด</p>
     <div id="board" style="flex:1; position:relative; background:url('data:image/svg+xml;utf8,<svg width=\'20\' height=\'20\' xmlns=\'http://www.w3.org/2000/svg\'><circle cx=\'2\' cy=\'2\' r=\'1\' fill=\'%23cbd5e1\'/></svg>') #f8fafc; border:1px solid #cbd5e1; border-radius:8px; overflow:hidden; touch-action:none; margin-top:8px;">
       <svg id="boardLines" style="position:absolute; top:0; left:0; width:100%; height:100%; pointer-events:none;"></svg>
     </div>
@@ -619,8 +626,44 @@ let linksData = [];
 const board = $("#board");
 const boardLines = $("#boardLines");
 let isDragging = null, isLinking = null, tempX = 0, tempY = 0;
+let currentUser = localStorage.getItem("steamUser") || "";
+
+// Initialize gasUrl from localStorage
+document.addEventListener("DOMContentLoaded", () => {
+  const urlInput = $("#gasUrl");
+  if(urlInput) urlInput.value = localStorage.getItem("gasUrl") || "";
+});
 
 function saveBoard() { localStorage.setItem("steamBoard", JSON.stringify({nodes: nodesData, links: linksData})); }
+
+window.syncToCloud = async () => {
+  const url = $("#gasUrl").value.trim();
+  if(!url) return alert("กรุณาวางลิงก์ Google Sheets Web App ก่อนครับ");
+  const btn = event.target; const oldText = btn.textContent; btn.textContent = "⏳ กำลังเซฟ...";
+  try {
+    const payload = JSON.stringify({nodes: nodesData, links: linksData});
+    await fetch(url, { method: "POST", body: payload, headers: {"Content-Type": "text/plain;charset=utf-8"} });
+    alert("✅ บันทึกขึ้น Google Sheets สำเร็จ!");
+  } catch(e) { alert("❌ เกิดข้อผิดพลาด: " + e.message); }
+  btn.textContent = oldText;
+};
+
+window.syncFromCloud = async () => {
+  const url = $("#gasUrl").value.trim();
+  if(!url) return alert("กรุณาวางลิงก์ Google Sheets Web App ก่อนครับ");
+  const btn = event.target; const oldText = btn.textContent; btn.textContent = "⏳ กำลังโหลด...";
+  try {
+    const res = await fetch(url);
+    const data = await res.json();
+    board.querySelectorAll(".note").forEach(e=>e.remove());
+    nodesData = {}; linksData = data.links || [];
+    Object.values(data.nodes || {}).forEach(n => createNote(n.x, n.y, n.text, n.id, n.color, n.owner));
+    drawLines();
+    saveBoard();
+    alert("✅ โหลดข้อมูลจากคลาวด์สำเร็จ!");
+  } catch(e) { alert("❌ เกิดข้อผิดพลาด: " + e.message); }
+  btn.textContent = oldText;
+};
 
 window.changeColor = (id, c) => {
   if(!nodesData[id]) return;
@@ -638,8 +681,14 @@ window.branchNote = (parentId) => {
   saveBoard(); drawLines();
 };
 
-function createNote(x, y, text="", id=null, color="yellow") {
+function createNote(x, y, text="", id=null, color="yellow", owner=null) {
   const isNew = !id;
+  if(isNew && !currentUser) {
+    currentUser = prompt("คุณชื่ออะไร? (ใช้ระบุตัวตนความเป็นเจ้าของไอเดีย)") || "ไม่ระบุชื่อ";
+    localStorage.setItem("steamUser", currentUser);
+  }
+  owner = owner || currentUser;
+  
   id = id || "n" + Date.now();
   const el = document.createElement("div");
   el.className = "note";
@@ -655,9 +704,10 @@ function createNote(x, y, text="", id=null, color="yellow") {
     <button class="del-btn" onpointerdown="event.stopPropagation(); deleteNote('${id}')">✕</button>
     <button class="add-branch" onpointerdown="event.stopPropagation(); branchNote('${id}')" title="สร้างหัวข้อย่อยเชื่อมต่อทันที">➕</button>
     <div contenteditable="true" oninput="nodesData['${id}'].text=this.innerText; saveBoard();" onpointerdown="event.stopPropagation()">${text}</div>
+    <div class="owner">👤 ${owner}</div>
     <div class="link-dot"></div>
   `;
-  nodesData[id] = { id, x, y, text, el, color };
+  nodesData[id] = { id, x, y, text, el, color, owner };
   board.appendChild(el);
   changeColor(id, color);
   saveBoard();
@@ -736,7 +786,7 @@ try {
   if (b) {
     const data = JSON.parse(b);
     linksData = data.links || [];
-    Object.values(data.nodes || {}).forEach(n => createNote(n.x, n.y, n.text, n.id, n.color || "yellow"));
+    Object.values(data.nodes || {}).forEach(n => createNote(n.x, n.y, n.text, n.id, n.color || "yellow", n.owner || ""));
     drawLines();
   }
 } catch(e) {}

@@ -996,14 +996,37 @@ window.openCurriculumModal = () => {
 };
 
 window.renderCurriculum = () => {
-  const subj = document.getElementById('curriculumSubject').value;
-  const list = CURRICULUM_DATA[subj];
-  document.getElementById('curriculumList').innerHTML = list.map(c => `
-    <label style="display:flex; gap:8px; align-items:flex-start; cursor:pointer; padding:4px;">
-      <input type="checkbox" value="${c}" class="curriculum-chk" style="margin-top:2px;">
-      <span>${c}</span>
-    </label>
-  `).join("");
+  try {
+    const subjEl = document.getElementById('curriculumSubject');
+    if (!subjEl) return;
+    const subj = (subjEl.value || "").trim();
+    
+    // Normalize keys just in case
+    const normalizedData = {};
+    for (let k in CURRICULUM_DATA) {
+      normalizedData[k.trim()] = CURRICULUM_DATA[k];
+    }
+    
+    const list = normalizedData[subj];
+    const listContainer = document.getElementById('curriculumList');
+    
+    if (!listContainer) return;
+    
+    if (!list) {
+      listContainer.innerHTML = `<p style="color:red">ไม่พบข้อมูลของวิชา: "${subj}" (กรุณาลองเปลี่ยนวิชาไปมา 1 ครั้ง)</p>`;
+      return;
+    }
+    
+    listContainer.innerHTML = list.map(c => `
+      <label style="display:flex; gap:8px; align-items:flex-start; cursor:pointer; padding:4px; border-bottom:1px solid #f1f5f9;">
+        <input type="checkbox" value="${c}" class="curriculum-chk" style="margin-top:2px;">
+        <span style="line-height:1.4;">${c}</span>
+      </label>
+    `).join("");
+  } catch(e) {
+    const listContainer = document.getElementById('curriculumList');
+    if (listContainer) listContainer.innerHTML = `<p style="color:red">เกิดข้อผิดพลาด: ${e.message}</p>`;
+  }
 };
 
 window.insertCurriculum = () => {

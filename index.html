@@ -1,0 +1,563 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>STEAM Active Learning Designer</title>
+<style>
+  :root{
+    --S:#2563eb; --T:#0891b2; --E:#ea580c; --A:#db2777; --M:#16a34a;
+    --bg:#f6f7fb; --card:#fff; --ink:#1f2937; --muted:#6b7280; --line:#e5e7eb; --pri:#7c3aed;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;font-family:"Sarabun","Noto Sans Thai","Leelawadee UI",system-ui,sans-serif;background:var(--bg);color:var(--ink);line-height:1.6}
+  header{background:linear-gradient(120deg,var(--S),var(--pri),var(--A));color:#fff;padding:24px 20px 0}
+  header h1{margin:0;font-size:1.6rem}
+  header p{margin:4px 0 16px;opacity:.9}
+  nav{display:flex;gap:4px;flex-wrap:wrap}
+  nav button{border:0;background:rgba(255,255,255,.18);color:#fff;padding:10px 16px;border-radius:12px 12px 0 0;font:inherit;cursor:pointer}
+  nav button[aria-selected="true"]{background:var(--bg);color:var(--ink);font-weight:700}
+  main{max-width:1100px;margin:auto;padding:20px}
+  section[hidden]{display:none}
+  .grid{display:grid;gap:16px;grid-template-columns:repeat(auto-fit,minmax(240px,1fr))}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:18px;box-shadow:0 1px 3px rgba(0,0,0,.04)}
+  .card h3{margin-top:0}
+  .badge{display:inline-grid;place-items:center;width:44px;height:44px;border-radius:12px;color:#fff;font-weight:800;font-size:1.3rem;margin-right:8px;vertical-align:middle}
+  .S{background:var(--S)}.T{background:var(--T)}.E{background:var(--E)}.A{background:var(--A)}.M{background:var(--M)}
+  .step{display:flex;gap:14px;align-items:flex-start}
+  .num{flex:none;width:42px;height:42px;border-radius:50%;background:var(--pri);color:#fff;display:grid;place-items:center;font-weight:800}
+  .flow{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:12px 0 20px}
+  .flow span{background:#ede9fe;color:#5b21b6;padding:6px 12px;border-radius:999px;font-weight:600}
+  label{font-weight:600;display:block;margin:10px 0 4px}
+  input[type=text],input[type=number],textarea,select{width:100%;padding:10px;border:1px solid var(--line);border-radius:10px;font:inherit;background:#fff}
+  textarea{min-height:80px;resize:vertical}
+  .checks{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px}
+  .checks label{display:flex;align-items:center;gap:4px;margin:0;font-weight:500;padding:4px 10px;border-radius:999px;border:1px solid var(--line);cursor:pointer}
+  .checks label:has(input:checked){background:#f5f3ff;border-color:var(--pri)}
+  .checks input{accent-color:var(--pri)}
+  .btn{border:0;border-radius:10px;padding:10px 18px;font:inherit;font-weight:700;cursor:pointer;background:var(--pri);color:#fff}
+  .btn.alt{background:#fff;color:var(--pri);border:1px solid var(--pri)}
+  .actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:16px}
+  .bar{height:14px;background:#eef0f4;border-radius:999px;overflow:hidden}
+  .bar>i{display:block;height:100%;border-radius:999px;transition:width .6s}
+  .row{display:grid;grid-template-columns:170px 1fr 56px;gap:10px;align-items:center;margin:8px 0}
+  .big{font-size:3rem;font-weight:800;line-height:1}
+  .verdict{padding:12px 16px;border-radius:12px;font-weight:700;margin-top:10px}
+  ul.tips li{margin:6px 0}
+  .muted{color:var(--muted)}
+  table{width:100%;border-collapse:collapse}
+  td,th{border:1px solid var(--line);padding:8px;text-align:left;vertical-align:top}
+  th{background:#f3f4f6}
+  @media print{header,nav,.actions,.noprint{display:none!important}main>section:not(#result){display:none!important}body{background:#fff}}
+</style>
+</head>
+<body>
+<header>
+  <h1>🎨 STEAM Active Learning Designer</h1>
+  <p>เครื่องมือช่วยครูออกแบบแผนการสอนแบบ STEAM ด้วยกระบวนการ Design Thinking 6 ขั้น</p>
+  <nav role="tablist">
+    <button role="tab" data-tab="learn" aria-selected="true">📘 หลักการ STEAM</button>
+    <button role="tab" data-tab="dt">💡 Design Thinking 6 ขั้น</button>
+    <button role="tab" data-tab="plan">📝 ออกแบบแผนการสอน</button>
+    <button role="tab" data-tab="result">📊 ผลวิเคราะห์</button>
+  </nav>
+</header>
+
+<main>
+<!-- ============ หลักการ STEAM ============ -->
+<section id="learn">
+  <div class="card">
+    <h2 style="margin-top:0">STEAM Education คืออะไร?</h2>
+    <p><b>STEAM</b> คือแนวการจัดการเรียนรู้ที่<b>บูรณาการ</b> 5 สาขาเข้าด้วยกัน ได้แก่ วิทยาศาสตร์ (Science) เทคโนโลยี (Technology) วิศวกรรมศาสตร์ (Engineering) ศิลปะ (Arts) และคณิตศาสตร์ (Mathematics) ให้ผู้เรียนนำความรู้ไป<b>แก้ปัญหาจริง</b>ในชีวิตประจำวัน โดยการเติม <b>A (Arts)</b> ลงใน STEM ช่วยเสริมความคิดสร้างสรรค์ สุนทรียะ การสื่อสาร และการออกแบบที่คำนึงถึงมนุษย์</p>
+  </div>
+  <h3>องค์ประกอบ 5 ด้าน</h3>
+  <div class="grid">
+    <div class="card"><h3><span class="badge S">S</span>Science</h3>ตั้งคำถาม สังเกต ตั้งสมมติฐาน ทดลอง อธิบายปรากฏการณ์ด้วยหลักการทางวิทยาศาสตร์</div>
+    <div class="card"><h3><span class="badge T">T</span>Technology</h3>ใช้เครื่องมือ อุปกรณ์ ซอฟต์แวร์ แอป การเขียนโปรแกรม และการสืบค้นข้อมูล เพื่อช่วยแก้ปัญหา</div>
+    <div class="card"><h3><span class="badge E">E</span>Engineering</h3>กระบวนการออกแบบเชิงวิศวกรรม วางแผน สร้าง ทดสอบ ปรับปรุงชิ้นงาน/ต้นแบบ ภายใต้เงื่อนไขที่กำหนด</div>
+    <div class="card"><h3><span class="badge A">A</span>Arts</h3>ความคิดสร้างสรรค์ การออกแบบ ความสวยงาม การสื่อสาร การเล่าเรื่อง ดนตรี การแสดง และมนุษยศาสตร์</div>
+    <div class="card"><h3><span class="badge M">M</span>Mathematics</h3>การวัด คำนวณ เก็บข้อมูล วิเคราะห์สถิติ กราฟ สัดส่วน เรขาคณิต ใช้ตัวเลขประกอบการตัดสินใจ</div>
+  </div>
+
+  <h3>Active Learning ใน STEAM</h3>
+  <div class="grid">
+    <div class="card">✋ <b>ลงมือทำ (Hands-on)</b><br>ผู้เรียนสร้าง ทดลอง ประดิษฐ์ด้วยตนเอง</div>
+    <div class="card">🧠 <b>คิดขั้นสูง (Minds-on)</b><br>วิเคราะห์ สังเคราะห์ ประเมิน สร้างสรรค์</div>
+    <div class="card">🤝 <b>ร่วมมือ (Collaborative)</b><br>ทำงานเป็นทีม อภิปราย แลกเปลี่ยนความคิด</div>
+    <div class="card">🌏 <b>ปัญหาจริง (Real-world)</b><br>เชื่อมโยงชีวิตประจำวัน ชุมชน และสังคม</div>
+    <div class="card">🔁 <b>สะท้อนคิด (Reflection)</b><br>ทบทวนสิ่งที่เรียนรู้และปรับปรุงอย่างต่อเนื่อง</div>
+    <div class="card">🎤 <b>นำเสนอ (Communicate)</b><br>สื่อสารผลงานให้ผู้อื่นเข้าใจ</div>
+  </div>
+
+  <h3>ระดับการบูรณาการ</h3>
+  <table>
+    <tr><th>ระดับ</th><th>ลักษณะ</th><th>ตัวชี้วัดในแอปนี้</th></tr>
+    <tr><td>1. แยกวิชา (Disciplinary)</td><td>เรียนแต่ละวิชาแยกกัน</td><td>มี 1–2 ด้านเด่น</td></tr>
+    <tr><td>2. พหุวิทยาการ (Multidisciplinary)</td><td>หัวข้อเดียวกันแต่เรียนแยกวิชา</td><td>มี 3 ด้านเด่น</td></tr>
+    <tr><td>3. สหวิทยาการ (Interdisciplinary)</td><td>เชื่อมโยงความรู้หลายวิชาในกิจกรรมเดียว</td><td>มี 4 ด้านเด่น</td></tr>
+    <tr><td>4. ข้ามสาขา (Transdisciplinary)</td><td>แก้ปัญหาจริงโดยใช้ทุกศาสตร์อย่างกลมกลืน</td><td>ครบ 5 ด้าน + Design Thinking ครบ</td></tr>
+  </table>
+</section>
+
+<!-- ============ Design Thinking ============ -->
+<section id="dt" hidden>
+  <div class="card">
+    <h2 style="margin-top:0">กระบวนการ Design Thinking 6 ขั้น</h2>
+    <div class="flow"><span>1 ปัญหา</span>→<span>2 ไอเดีย</span>→<span>3 ต้นแบบ</span>→<span>4 Feedback</span>→<span>5 Improve</span>→<span>6 Innovation</span></div>
+    <p class="muted">ขั้น 3–5 วนซ้ำได้หลายรอบจนได้ชิ้นงานที่ดีที่สุด แล้วจึงต่อยอดเป็นนวัตกรรม</p>
+  </div>
+  <div id="dtCards" class="grid" style="grid-template-columns:1fr"></div>
+</section>
+
+<!-- ============ ออกแบบแผน ============ -->
+<section id="plan" hidden>
+  <div class="card">
+    <h2 style="margin-top:0">ข้อมูลแผนการสอน</h2>
+    <div class="grid">
+      <div><label for="title">ชื่อโครงการ/หน่วยการเรียนรู้</label><input type="text" id="title"></div>
+      <div><label for="grade">ระดับชั้น</label>
+        <select id="grade"><option>ปฐมวัย</option><option>ป.1-3</option><option>ป.4-6</option><option>ม.1-3</option><option>ม.4-6</option><option>อาชีวศึกษา</option></select></div>
+      <div><label for="subject">วิชาหลัก</label><input type="text" id="subject"></div>
+      <div><label for="hours">เวลา (ชั่วโมง)</label><input type="number" id="hours" min="1" value="6"></div>
+    </div>
+    <label for="objectives">จุดประสงค์การเรียนรู้</label><textarea id="objectives" placeholder="ผู้เรียนสามารถ..."></textarea>
+  </div>
+
+  <h3>กิจกรรมตาม Design Thinking 6 ขั้น <span class="muted" style="font-weight:400">(ติ๊กว่าขั้นนี้ใช้หลัก STEAM ด้านใด)</span></h3>
+  <div id="stepForms"></div>
+
+  <div class="card" style="margin-top:16px">
+    <label for="assessment">การวัดและประเมินผล</label><textarea id="assessment" placeholder="เช่น Rubric ชิ้นงาน, แบบสังเกตพฤติกรรม, การนำเสนอ..."></textarea>
+    <label for="materials">สื่อ/วัสดุอุปกรณ์</label><textarea id="materials"></textarea>
+  </div>
+
+  <div class="actions">
+    <button class="btn" id="analyze">📊 วิเคราะห์ความเป็น STEAM</button>
+    <select id="sampleSelect" class="btn alt" style="background:#fff;border:1px solid #ccc;cursor:pointer">
+      <option value="">📄 เลือกตัวอย่างวิชา (12 แบบ)</option>
+    </select>
+    <button class="btn alt" id="save">💾 บันทึก</button>
+    <button class="btn alt" id="exportJson">⬇️ ส่งออก (JSON)</button>
+    <label class="btn alt" style="margin:0">⬆️ นำเข้า<input type="file" id="importJson" accept=".json" hidden></label>
+    <button class="btn alt" id="clear">🗑️ ล้าง</button>
+  </div>
+</section>
+
+<!-- ============ ผลวิเคราะห์ ============ -->
+<section id="result" hidden>
+  <div id="resultBox" class="card"><p class="muted">ยังไม่มีผล — ไปที่แท็บ “ออกแบบแผนการสอน” แล้วกด “วิเคราะห์”</p></div>
+</section>
+</main>
+
+<script>
+const SAMPLES = [
+{ id:"phy-full", group:"ฟิสิกส์ ม.4", variant:"STEAM เต็มรูปแบบ", data:{
+  title:"กังหันลมผลิตไฟฟ้าขนาดเล็กเพื่อชุมชน", grade:"ม.4-6", subject:"ฟิสิกส์ (พลังงาน)", hours:10,
+  objectives:"1. อธิบายการเปลี่ยนรูปพลังงานลมเป็นพลังงานไฟฟ้าได้\n2. ออกแบบและสร้างกังหันลมที่ผลิตแรงดันไฟฟ้าได้สูงสุด\n3. นำเสนอนวัตกรรมอย่างสร้างสรรค์และเชื่อมโยงกับชุมชน",
+  assessment:"Rubric ชิ้นงาน (ประสิทธิภาพ ความแข็งแรง ความสวยงาม), แบบสังเกตการทำงานกลุ่ม, การนำเสนอ, แบบประเมินตนเองและเพื่อน",
+  materials:"มอเตอร์ DC, ใบพัดจากขวดพลาสติก, มัลติมิเตอร์, พัดลม, micro:bit, Canva",
+  steps:{
+    problem:{tags:["S","A"],text:"ลงพื้นที่สำรวจชุมชนที่ไฟฟ้าดับบ่อย สัมภาษณ์ชาวบ้านเพื่อเข้าใจความต้องการ (Empathy) อภิปรายกลุ่มตั้งคำถาม “เราจะผลิตไฟฟ้าสำรองจากพลังงานลมได้อย่างไร?” ศึกษาหลักการเหนี่ยวนำแม่เหล็กไฟฟ้า"},
+    idea:{tags:["S","T","A","M"],text:"ระดมความคิดเป็นทีม สืบค้นรูปแบบใบพัด วาด Sketch แบบร่างกังหัน 3 แบบ คำนวณพื้นที่ใบพัดและมุมบิด เลือกแบบด้วยเกณฑ์ต้นทุน ประสิทธิภาพ และความสวยงาม"},
+    prototype:{tags:["E","M","A","T"],text:"ลงมือประดิษฐ์ต้นแบบกังหันจากวัสดุเหลือใช้ ภายใต้เงื่อนไขงบประมาณ 100 บาท วัดขนาดใบพัด ต่อวงจรกับ micro:bit แสดงค่าแรงดัน และตกแต่งลวดลายตามเอกลักษณ์ชุมชน"},
+    feedback:{tags:["S","M","T","E"],text:"ทดสอบกังหันที่ความเร็วลม 3 ระดับ วัดแรงดันไฟฟ้าด้วยมัลติมิเตอร์ บันทึกข้อมูลลงตาราง เขียนกราฟเปรียบเทียบ ให้เพื่อนและชาวบ้านประเมินแบบ Gallery walk"},
+    improve:{tags:["E","M","S"],text:"วิเคราะห์ข้อมูลหาสาเหตุที่แรงดันต่ำ ปรับมุมใบพัดและโครงสร้าง ทดสอบซ้ำ คำนวณร้อยละประสิทธิภาพที่เพิ่มขึ้นและหาค่าเฉลี่ย"},
+    innovation:{tags:["A","T"],text:"นำเสนอนวัตกรรมด้วยอินโฟกราฟิกและคลิปวิดีโอเล่าเรื่อง มอบต้นแบบให้ชุมชนใช้จริง จัดนิทรรศการ และสะท้อนคิดสิ่งที่ได้เรียนรู้"}
+  }}},
+{ id:"phy-stem", group:"ฟิสิกส์ ม.4", variant:"STEM (ไม่มีศิลปะ)", data:{
+  title:"กังหันลมผลิตไฟฟ้า (แบบ STEM)", grade:"ม.4-6", subject:"ฟิสิกส์ (พลังงาน)", hours:8,
+  objectives:"1. อธิบายการเปลี่ยนรูปพลังงานได้\n2. สร้างกังหันลมที่ผลิตแรงดันไฟฟ้าได้สูงสุด",
+  assessment:"คะแนนแรงดันไฟฟ้าที่วัดได้, รายงานผลการทดลอง",
+  materials:"มอเตอร์ DC, ใบพัด, มัลติมิเตอร์, พัดลม",
+  steps:{
+    problem:{tags:["S"],text:"ครูกำหนดโจทย์ให้สร้างกังหันลมที่ผลิตไฟฟ้าได้มากที่สุด นักเรียนศึกษาหลักการเหนี่ยวนำแม่เหล็กไฟฟ้าและการเปลี่ยนรูปพลังงาน"},
+    idea:{tags:["S","T"],text:"แต่ละกลุ่มสืบค้นข้อมูลรูปแบบใบพัดจากอินเทอร์เน็ต เลือกแบบที่คิดว่ามีประสิทธิภาพสูงสุด"},
+    prototype:{tags:["E","M"],text:"สร้างต้นแบบกังหันตามเงื่อนไขที่กำหนด วัดขนาดใบพัดและคำนวณพื้นที่"},
+    feedback:{tags:["S","M","E"],text:"ทดสอบที่ความเร็วลม 3 ระดับ วัดแรงดันไฟฟ้า บันทึกข้อมูลลงตาราง เขียนกราฟ"},
+    improve:{tags:["E","M"],text:"ปรับปรุงโครงสร้างใบพัด ทดสอบซ้ำ และคำนวณร้อยละที่เพิ่มขึ้น"},
+    innovation:{tags:["T"],text:"เขียนรายงานผลการทดลองส่งครู"}
+  }}},
+{ id:"phy-lecture", group:"ฟิสิกส์ ม.4", variant:"บรรยายแบบดั้งเดิม", data:{
+  title:"พลังงานลมและการผลิตไฟฟ้า", grade:"ม.4-6", subject:"ฟิสิกส์", hours:3,
+  objectives:"นักเรียนอธิบายหลักการเหนี่ยวนำแม่เหล็กไฟฟ้าได้",
+  assessment:"แบบทดสอบปรนัย 20 ข้อ",
+  materials:"หนังสือเรียน, PowerPoint",
+  steps:{
+    problem:{tags:["S"],text:"ครูบรรยายเรื่องพลังงานและการเหนี่ยวนำแม่เหล็กไฟฟ้า นักเรียนจดบันทึก"},
+    idea:{tags:[],text:""},
+    prototype:{tags:[],text:""},
+    feedback:{tags:["M"],text:"นักเรียนทำแบบฝึกหัดคำนวณในหนังสือ"},
+    improve:{tags:[],text:""},
+    innovation:{tags:[],text:"สอบท้ายบท"}
+  }}},
+{ id:"chem-full", group:"เคมี ม.5", variant:"STEAM เต็มรูปแบบ", data:{
+  title:"บรรจุภัณฑ์ไบโอพลาสติกจากแป้งมันสำปะหลัง", grade:"ม.4-6", subject:"เคมี (พอลิเมอร์)", hours:10,
+  objectives:"1. อธิบายโครงสร้างและสมบัติของพอลิเมอร์ได้\n2. ออกแบบสูตรไบโอพลาสติกที่แข็งแรงและย่อยสลายได้\n3. ออกแบบบรรจุภัณฑ์ที่สวยงามสำหรับสินค้าชุมชน",
+  assessment:"Rubric ชิ้นงาน, รายงานการทดลอง, การนำเสนอ Pitching, แบบประเมินตนเอง",
+  materials:"แป้งมันสำปะหลัง, กลีเซอรีน, น้ำส้มสายชู, เตาไฟฟ้า, ตาชั่งดิจิทัล, แท็บเล็ต",
+  steps:{
+    problem:{tags:["S","A"],text:"สำรวจปัญหาขยะพลาสติกในตลาดชุมชน สัมภาษณ์แม่ค้าถึงความต้องการบรรจุภัณฑ์ อภิปรายกลุ่มตั้งคำถามปัญหา ศึกษาสมบัติพอลิเมอร์และปฏิกิริยาเคมี"},
+    idea:{tags:["S","M","A"],text:"ระดมความคิดออกแบบสูตรไบโอพลาสติก กำหนดตัวแปรต้น (อัตราส่วนกลีเซอรีน) ตั้งสมมติฐาน วาด Sketch รูปทรงบรรจุภัณฑ์"},
+    prototype:{tags:["S","E","M","T"],text:"ทดลองผสมสารเคมีตามอัตราส่วน 3 สูตร ชั่งน้ำหนักด้วยตาชั่งดิจิทัล ขึ้นรูปต้นแบบบรรจุภัณฑ์ และตกแต่งด้วยสีธรรมชาติ"},
+    feedback:{tags:["S","M","E"],text:"ทดสอบความแข็งแรงและการย่อยสลายในดิน 14 วัน เก็บข้อมูลเป็นตาราง คำนวณค่าเฉลี่ย ให้แม่ค้าทดลองใช้และให้ข้อเสนอแนะ"},
+    improve:{tags:["S","E","M"],text:"วิเคราะห์สูตรที่ดีที่สุด ปรับปรุงสูตรและความหนา ทดสอบซ้ำ เปรียบเทียบผลก่อนและหลัง"},
+    innovation:{tags:["A","T"],text:"ทำโปสเตอร์และคลิปวิดีโอนำเสนอนวัตกรรม ออกแบบโลโก้ให้สินค้าชุมชน สะท้อนคิดผลกระทบต่อสิ่งแวดล้อม"}
+  }}},
+{ id:"chem-stem", group:"เคมี ม.5", variant:"STEM (ไม่มีศิลปะ)", data:{
+  title:"ไบโอพลาสติกจากแป้ง (แบบ STEM)", grade:"ม.4-6", subject:"เคมี", hours:6,
+  objectives:"ทดลองหาสูตรไบโอพลาสติกที่แข็งแรงที่สุด",
+  assessment:"รายงานผลการทดลอง",
+  materials:"แป้ง, กลีเซอรีน, ตาชั่ง",
+  steps:{
+    problem:{tags:["S"],text:"ครูกำหนดปัญหาขยะพลาสติก นักเรียนศึกษาสมบัติพอลิเมอร์และปฏิกิริยาเคมี"},
+    idea:{tags:["S","M"],text:"กำหนดตัวแปรต้นเป็นอัตราส่วนกลีเซอรีน ตั้งสมมติฐาน"},
+    prototype:{tags:["S","E","M"],text:"ทดลองผสมสารเคมี 3 สูตร ชั่งน้ำหนัก ขึ้นรูปชิ้นงาน"},
+    feedback:{tags:["S","M","E"],text:"ทดสอบความแข็งแรง เก็บข้อมูลลงตาราง คำนวณค่าเฉลี่ย"},
+    improve:{tags:["E","M"],text:"ปรับปรุงสูตรที่ดีที่สุดแล้วทดสอบซ้ำ"},
+    innovation:{tags:["T"],text:"พิมพ์รายงานด้วยคอมพิวเตอร์ส่งครู"}
+  }}},
+{ id:"chem-partial", group:"เคมี ม.5", variant:"Design Thinking ไม่ครบ", data:{
+  title:"ไบโอพลาสติก (ทำแค่ครึ่งกระบวนการ)", grade:"ม.4-6", subject:"เคมี", hours:4,
+  objectives:"ทดลองทำไบโอพลาสติกและออกแบบลวดลาย",
+  assessment:"ชิ้นงาน",
+  materials:"แป้ง, กลีเซอรีน, สีผสมอาหาร",
+  steps:{
+    problem:{tags:["S"],text:"ศึกษาสมบัติพอลิเมอร์และปัญหาขยะพลาสติก อภิปรายกลุ่ม"},
+    idea:{tags:["A","S"],text:"วาด Sketch ลวดลายบรรจุภัณฑ์ที่สวยงาม ระดมความคิดเป็นทีม"},
+    prototype:{tags:["E","S","A"],text:"ลงมือทดลองผสมสารเคมีขึ้นรูปชิ้นงาน ตกแต่งด้วยสีสัน"},
+    feedback:{tags:[],text:""},
+    improve:{tags:[],text:""},
+    innovation:{tags:[],text:""}
+  }}},
+{ id:"bio-full", group:"ชีววิทยา ม.6", variant:"STEAM เต็มรูปแบบ", data:{
+  title:"สวนผักไฮโดรโพนิกส์อัจฉริยะในโรงเรียน", grade:"ม.4-6", subject:"ชีววิทยา (พืช)", hours:12,
+  objectives:"1. อธิบายปัจจัยการเจริญเติบโตของพืชได้\n2. ออกแบบระบบปลูกผักที่ควบคุมด้วยเซนเซอร์\n3. ออกแบบสวนให้สวยงามเป็นพื้นที่เรียนรู้",
+  assessment:"Rubric ระบบ, สมุดบันทึกการเจริญเติบโต, การนำเสนอ, ประเมินตนเองและเพื่อน",
+  materials:"ท่อ PVC, ปั๊มน้ำ, สารละลายธาตุอาหาร, Arduino, เซนเซอร์ความชื้นและแสง, Google Sheets",
+  steps:{
+    problem:{tags:["S","A"],text:"สำรวจโรงอาหารพบผักราคาแพงและมีสารตกค้าง สัมภาษณ์แม่ครัว (Empathy) อภิปรายกลุ่ม ศึกษาการสังเคราะห์ด้วยแสงและธาตุอาหารพืช"},
+    idea:{tags:["S","T","A"],text:"ระดมความคิดออกแบบระบบปลูก สืบค้นข้อมูล วาดภาพร่างผังสวนให้สวยงามและใช้งานง่าย ตั้งสมมติฐานเรื่องปริมาณแสง"},
+    prototype:{tags:["E","T","M"],text:"ลงมือประดิษฐ์ระบบท่อ PVC เขียนโปรแกรม Arduino ควบคุมปั๊มด้วยเซนเซอร์ คำนวณปริมาตรสารละลายและอัตราส่วนธาตุอาหาร"},
+    feedback:{tags:["S","M","T"],text:"สังเกตและวัดความสูงพืชทุก 3 วัน เก็บข้อมูลลง Google Sheets ทำกราฟเปรียบเทียบกับแปลงดิน ให้แม่ครัวและเพื่อนให้ข้อเสนอแนะ"},
+    improve:{tags:["E","S","M"],text:"วิเคราะห์ข้อมูลหาตัวแปรที่มีผล ปรับปรุงระบบให้ประหยัดพลังงาน ทดสอบซ้ำ เปรียบเทียบค่าเฉลี่ยผลผลิต"},
+    innovation:{tags:["A","T"],text:"จัดนิทรรศการ เล่าเรื่องผ่านคลิปวิดีโอและอินโฟกราฟิก ส่งผักให้โรงอาหาร ขยายผลสู่ชุมชน สะท้อนคิด"}
+  }}},
+{ id:"bio-lecture", group:"ชีววิทยา ม.6", variant:"บรรยาย + ทดลองตามคู่มือ", data:{
+  title:"การสังเคราะห์ด้วยแสง", grade:"ม.4-6", subject:"ชีววิทยา", hours:4,
+  objectives:"อธิบายกระบวนการสังเคราะห์ด้วยแสงได้",
+  assessment:"ใบงานและแบบทดสอบ",
+  materials:"หนังสือเรียน, สาหร่ายหางกระรอก, หลอดทดลอง",
+  steps:{
+    problem:{tags:["S"],text:"ครูบรรยายเรื่องการสังเคราะห์ด้วยแสงและปัจจัยที่เกี่ยวข้อง"},
+    idea:{tags:[],text:""},
+    prototype:{tags:["S"],text:"นักเรียนทดลองตามคู่มือ นับฟองแก๊สจากสาหร่าย"},
+    feedback:{tags:["M"],text:"บันทึกผลลงใบงาน"},
+    improve:{tags:[],text:""},
+    innovation:{tags:[],text:""}
+  }}},
+{ id:"bio-gaming", group:"ชีววิทยา ม.6", variant:"ติ๊กครบแต่ไม่เขียนกิจกรรม", data:{
+  title:"ระบบนิเวศ", grade:"ม.4-6", subject:"ชีววิทยา", hours:2,
+  objectives:"", assessment:"", materials:"",
+  steps:{
+    problem:{tags:["S","T","E","A","M"],text:"ศึกษา"},
+    idea:{tags:["S","T","E","A","M"],text:"คิด"},
+    prototype:{tags:["S","T","E","A","M"],text:"ทำ"},
+    feedback:{tags:["S","T","E","A","M"],text:""},
+    improve:{tags:["S","T","E","A","M"],text:""},
+    innovation:{tags:["S","T","E","A","M"],text:""}
+  }}},
+{ id:"math-full", group:"คณิตศาสตร์ ม.6", variant:"STEAM เต็มรูปแบบ", data:{
+  title:"ออกแบบกล่องบรรจุภัณฑ์ OTOP ใช้วัสดุน้อยที่สุด", grade:"ม.4-6", subject:"คณิตศาสตร์ (แคลคูลัส: ค่าสูงสุด-ต่ำสุด)", hours:8,
+  objectives:"1. ใช้อนุพันธ์หาค่าต่ำสุดของพื้นที่ผิวได้\n2. ออกแบบกล่องที่ประหยัดวัสดุและสวยงาม\n3. นำเสนอผลงานให้ผู้ประกอบการ",
+  assessment:"Rubric ชิ้นงาน, ใบงานการคำนวณ, การนำเสนอ Pitching, ประเมินโดยผู้ประกอบการ",
+  materials:"กระดาษแข็ง, ไม้บรรทัด, GeoGebra, Canva, เครื่องตัดเลเซอร์",
+  steps:{
+    problem:{tags:["A","M"],text:"สัมภาษณ์ผู้ประกอบการ OTOP ในชุมชนเรื่องต้นทุนกล่องสูง (Empathy) อภิปรายกลุ่ม กำหนดปัญหา “ออกแบบกล่องปริมาตรคงที่ใช้วัสดุน้อยที่สุดได้อย่างไร?”"},
+    idea:{tags:["M","T","A"],text:"ระดมความคิดรูปทรงกล่อง วาด Sketch สร้างแบบจำลองใน GeoGebra เขียนสมการพื้นที่ผิวและหาอนุพันธ์เพื่อหาค่าต่ำสุด"},
+    prototype:{tags:["E","M","A","T"],text:"ลงมือสร้างต้นแบบกล่องจากกระดาษแข็งตามขนาดที่คำนวณ ตัดด้วยเครื่องตัดเลเซอร์ ออกแบบลวดลายและโลโก้ด้วย Canva"},
+    feedback:{tags:["S","M","E"],text:"ทดสอบความแข็งแรงโดยวางน้ำหนัก ทดสอบการตกกระแทก คำนวณต้นทุนต่อกล่อง เปรียบเทียบกับกล่องเดิม ให้ผู้ประกอบการประเมิน"},
+    improve:{tags:["E","M"],text:"ปรับปรุงขนาดและโครงสร้างจากข้อเสนอแนะ คำนวณร้อยละวัสดุที่ลดลง"},
+    innovation:{tags:["A","T"],text:"นำเสนอแบบ Pitching ต่อผู้ประกอบการ ทำโปสเตอร์ มอบแบบกล่องให้ชุมชนใช้จริง สะท้อนคิด"}
+  }}},
+{ id:"math-stem", group:"คณิตศาสตร์ ม.6", variant:"STEM (ไม่มีศิลปะ)", data:{
+  title:"กล่องปริมาตรคงที่ใช้วัสดุน้อยที่สุด (แบบ STEM)", grade:"ม.4-6", subject:"คณิตศาสตร์", hours:5,
+  objectives:"ใช้อนุพันธ์หาค่าต่ำสุดของพื้นที่ผิวได้",
+  assessment:"ใบงานการคำนวณและชิ้นงาน",
+  materials:"กระดาษแข็ง, ไม้บรรทัด, GeoGebra",
+  steps:{
+    problem:{tags:["M"],text:"ครูกำหนดโจทย์กล่องปริมาตร 1 ลิตร ให้หาขนาดที่ใช้วัสดุน้อยที่สุด"},
+    idea:{tags:["M","T"],text:"เขียนสมการพื้นที่ผิว ใช้ GeoGebra หาค่าต่ำสุด ตรวจด้วยอนุพันธ์"},
+    prototype:{tags:["E","M"],text:"สร้างกล่องจากกระดาษแข็งตามขนาดที่คำนวณ วัดขนาดให้ถูกต้อง"},
+    feedback:{tags:["E","M","S"],text:"ทดสอบความแข็งแรงของกล่อง เปรียบเทียบพื้นที่ผิวกับกล่องทั่วไป"},
+    improve:{tags:["E"],text:"ปรับปรุงรอยพับให้แข็งแรงขึ้น"},
+    innovation:{tags:[],text:"ส่งชิ้นงานและใบงาน"}
+  }}},
+{ id:"math-lecture", group:"คณิตศาสตร์ ม.6", variant:"บรรยาย + แบบฝึกหัด", data:{
+  title:"การประยุกต์อนุพันธ์", grade:"ม.4-6", subject:"คณิตศาสตร์", hours:3,
+  objectives:"หาค่าสูงสุดต่ำสุดของฟังก์ชันได้",
+  assessment:"แบบฝึกหัดและแบบทดสอบ",
+  materials:"หนังสือเรียน",
+  steps:{
+    problem:{tags:["M"],text:"ครูอธิบายทฤษฎีบทค่าสูงสุดต่ำสุดและยกตัวอย่างโจทย์บนกระดาน"},
+    idea:{tags:[],text:""},
+    prototype:{tags:[],text:""},
+    feedback:{tags:["M"],text:"นักเรียนทำแบบฝึกหัดคำนวณ 1-20"},
+    improve:{tags:[],text:""},
+    innovation:{tags:[],text:""}
+  }}}
+];
+
+const L = ["S","T","E","A","M"];
+const LN = {S:"Science",T:"Technology",E:"Engineering",A:"Arts",M:"Mathematics"};
+const COLORS = {S:"#2563eb",T:"#0891b2",E:"#ea580c",A:"#db2777",M:"#16a34a"};
+
+const STEPS = [
+
+  {k:"problem", t:"ปัญหา (Problem)", icon:"🔍",
+   d:"ทำความเข้าใจผู้ใช้/สถานการณ์จริง สังเกต สัมภาษณ์ แล้วระบุปัญหาให้ชัดเจน",
+   act:["สำรวจชุมชน/โรงเรียน หาปัญหาจริง","สัมภาษณ์ผู้เกี่ยวข้อง (Empathy)","เขียนข้อความปัญหา “เราจะ...ได้อย่างไร?”"],
+   q:["ใครเจอปัญหานี้?","ปัญหาเกิดเพราะอะไร (หลักวิทยาศาสตร์)?","มีข้อมูลตัวเลขอะไรยืนยัน?"]},
+  {k:"idea", t:"ไอเดีย (Idea)", icon:"💡",
+   d:"ระดมความคิดหาทางแก้ให้ได้มากที่สุด แล้วคัดเลือกไอเดียที่เหมาะสม",
+   act:["Brainstorm / Mind map","ร่างภาพ Sketch แนวคิด","เลือกไอเดียด้วยเกณฑ์ (ต้นทุน ความเป็นไปได้ ความสวยงาม)"],
+   q:["มีวิธีแก้แบบอื่นอีกไหม?","ไอเดียไหนเป็นไปได้มากที่สุด?","ใช้ความรู้วิชาใดบ้าง?"]},
+  {k:"prototype", t:"ต้นแบบ (Prototype)", icon:"🛠️",
+   d:"ลงมือสร้างชิ้นงานต้นแบบอย่างง่าย รวดเร็ว เพื่อทดสอบแนวคิด",
+   act:["ออกแบบ แบบร่าง/วัดขนาด","สร้างต้นแบบจากวัสดุ/เทคโนโลยี","บันทึกขั้นตอนการสร้าง"],
+   q:["ต้องใช้วัสดุ/เครื่องมืออะไร?","ขนาด สัดส่วนเท่าไร?","ออกแบบให้สวยงามน่าใช้อย่างไร?"]},
+  {k:"feedback", t:"Feedback (ทดสอบและรับข้อเสนอแนะ)", icon:"🗣️",
+   d:"ทดสอบต้นแบบกับผู้ใช้จริง เก็บข้อมูล และรับฟังความคิดเห็น",
+   act:["ทดสอบประสิทธิภาพ เก็บข้อมูลเป็นตัวเลข","ให้เพื่อน/ผู้ใช้ประเมิน (Gallery walk)","สรุปจุดแข็ง-จุดอ่อน"],
+   q:["ผลการทดสอบเป็นอย่างไร?","ผู้ใช้พอใจหรือไม่ เพราะอะไร?","ข้อมูลบอกอะไรเรา?"]},
+  {k:"improve", t:"Improve (ปรับปรุงพัฒนา)", icon:"🔁",
+   d:"นำผล Feedback มาวิเคราะห์ ปรับปรุงต้นแบบ และทดสอบซ้ำ",
+   act:["วิเคราะห์สาเหตุจุดอ่อน","ปรับแบบและสร้างใหม่","เปรียบเทียบผลก่อน-หลังปรับปรุง"],
+   q:["ควรแก้ไขส่วนใด?","ผลดีขึ้นกี่เปอร์เซ็นต์?","ถ้ามีเวลาเพิ่มจะพัฒนาอะไรอีก?"]},
+  {k:"innovation", t:"Innovation (นวัตกรรม)", icon:"🚀",
+   d:"สรุปเป็นนวัตกรรม นำเสนอ เผยแพร่ ต่อยอดใช้จริงในชุมชน",
+   act:["นำเสนอผลงาน/Pitching","จัดนิทรรศการ ทำโปสเตอร์ คลิปวิดีโอ","สะท้อนคิดสิ่งที่ได้เรียนรู้"],
+   q:["นวัตกรรมนี้ช่วยใครได้บ้าง?","จะต่อยอดอย่างไร?","เราได้เรียนรู้อะไรจากกระบวนการนี้?"]}
+];
+
+const KW = {
+  S:["วิทยาศาสตร์","ทดลอง","สมมติฐาน","สังเกต","แรง","พลังงาน","ความร้อน","แสง","เสียง","ไฟฟ้า","สารเคมี","สารละลาย","ปฏิกิริยา","พอลิเมอร์","พืช","สัตว์","สิ่งมีชีวิต","ระบบนิเวศ","ปรากฏการณ์","ตัวแปร","การลอย","ลอยจม","ดิน","อากาศ","สิ่งแวดล้อม","เคมี","ฟิสิกส์","ชีววิทยา","หลักการ","แม่เหล็ก","สังเคราะห์ด้วยแสง","ธาตุอาหาร"],
+  T:["เทคโนโลยี","คอมพิวเตอร์","แอป","โปรแกรม","coding","โค้ด","micro:bit","arduino","sensor","เซนเซอร์","สืบค้น","อินเทอร์เน็ต","แท็บเล็ต","ดิจิทัล","canva","geogebra","google","excel","3d","วิดีโอ","ซอฟต์แวร์","มัลติมิเตอร์","เลเซอร์","เครื่องพิมพ์ 3 มิติ","ai","หุ่นยนต์","ออนไลน์"],
+  E:["ออกแบบ","ลงมือสร้าง","สร้างต้นแบบ","ต้นแบบ","prototype","ทดสอบ","ปรับปรุง","ประดิษฐ์","โครงสร้าง","วิศวกรรม","กลไก","เงื่อนไข","ข้อจำกัด","ชิ้นงาน","แบบร่าง","ขึ้นรูป","ความแข็งแรง","ประสิทธิภาพ","วงจร"],
+  A:["ศิลปะ","สวยงาม","สีสัน","สีธรรมชาติ","ระบายสี","วาด","ภาพร่าง","ภาพวาด","ตกแต่ง","สร้างสรรค์","sketch","ดนตรี","เพลง","การแสดง","บทบาทสมมติ","เล่าเรื่อง","โปสเตอร์","นำเสนอ","สุนทรียะ","ลวดลาย","ปั้น","วัฒนธรรม","เอกลักษณ์","โลโก้","ความรู้สึก","empathy","อินโฟกราฟิก","นิทรรศการ"],
+  M:["คณิต","คำนวณ","การวัด","วัดขนาด","วัดค่า","วัดความ","วัดแรง","ขนาด","ความยาว","น้ำหนัก","ปริมาตร","พื้นที่","มุม","รูปทรง","เรขาคณิต","สัดส่วน","อัตราส่วน","ร้อยละ","เปอร์เซ็นต์","ค่าเฉลี่ย","สถิติ","กราฟ","ตาราง","เก็บข้อมูล","วิเคราะห์ข้อมูล","ตัวเลข","ต้นทุน","งบประมาณ","เปรียบเทียบ","สมการ","อนุพันธ์","ฟังก์ชัน","ค่าสูงสุด","ค่าต่ำสุด"]
+};
+/* คำที่มีคำสำคัญซ่อนอยู่แต่ความหมายต่างกัน — ตัดออกก่อนจับคำ (พบจากชุดทดสอบ) */
+const EXCLUDE = {
+  "ทดสอบ":["แบบทดสอบ"], "สร้างสรรค์":[], "แรง":["แรงจูงใจ","แรงบันดาลใจ","แรงงาน"],
+  "ดิน":["ดินสอ"], "ขนาด":["ขนาดเล็ก","ขนาดใหญ่"], "พื้นที่":["ลงพื้นที่","พื้นที่เรียนรู้"],
+  "ตาราง":["ตารางเรียน","ตารางสอน"], "มุม":["มุมมอง"], "หลักการ":[]
+};
+const AL_KW = ["กลุ่ม","ทีม","ร่วมกัน","อภิปราย","ลงมือ","ปฏิบัติ","ทดลอง","สำรวจ","สัมภาษณ์","นำเสนอ","สะท้อน","ระดมความคิด","brainstorm","แลกเปลี่ยน","สืบค้น","โครงงาน","ชุมชน","ชีวิตจริง","แก้ปัญหา","gallery","ประเมินตนเอง","เพื่อน","pitching","นิทรรศการ"];
+const MIN_STEP_TEXT = 15; // ขั้นที่เขียนกิจกรรมสั้นกว่านี้ถือว่ายังไม่มีกิจกรรม
+
+const $ = s => document.querySelector(s);
+
+/* ---- Tabs ---- */
+document.querySelectorAll("nav button").forEach(b => b.onclick = () => showTab(b.dataset.tab));
+function showTab(id){
+  document.querySelectorAll("nav button").forEach(b => b.setAttribute("aria-selected", b.dataset.tab===id));
+  document.querySelectorAll("main>section").forEach(s => s.hidden = s.id!==id);
+  scrollTo({top:0,behavior:"smooth"});
+}
+
+/* ---- DT info cards ---- */
+$("#dtCards").innerHTML = STEPS.map((s,i)=>`
+  <div class="card step"><div class="num">${i+1}</div><div style="flex:1">
+    <h3 style="margin:0 0 4px">${s.icon} ${s.t}</h3><p style="margin:0 0 8px">${s.d}</p>
+    <div class="grid"><div><b>กิจกรรมแนะนำ</b><ul>${s.act.map(a=>`<li>${a}</li>`).join("")}</ul></div>
+    <div><b>คำถามกระตุ้นการคิด</b><ul>${s.q.map(a=>`<li>${a}</li>`).join("")}</ul></div></div>
+  </div></div>`).join("");
+
+/* ---- Step forms ---- */
+$("#stepForms").innerHTML = STEPS.map((s,i)=>`
+  <div class="card" style="margin-bottom:12px">
+    <div class="step"><div class="num">${i+1}</div><div style="flex:1">
+      <h3 style="margin:0">${s.icon} ${s.t}</h3><div class="muted">${s.d}</div>
+      <textarea id="act_${s.k}" aria-label="กิจกรรมขั้น ${s.t}" placeholder="กิจกรรม: ${s.act[0]}..."></textarea>
+      <div class="checks">${L.map(l=>`<label><input type="checkbox" id="c_${s.k}_${l}"> <b style="color:${COLORS[l]}">${l}</b> ${LN[l]}</label>`).join("")}</div>
+    </div></div>
+  </div>`).join("");
+
+/* ---- Data ---- */
+const FIELDS = ["title","grade","subject","hours","objectives","assessment","materials"];
+function collect(){
+  const d = {}; FIELDS.forEach(f=>d[f]=$("#"+f).value);
+  d.steps = {}; STEPS.forEach(s=>{ d.steps[s.k] = {text:$("#act_"+s.k).value, tags:L.filter(l=>$(`#c_${s.k}_${l}`).checked)}; });
+  return d;
+}
+function fill(d){
+  FIELDS.forEach(f=>{ if(d[f]!==undefined) $("#"+f).value=d[f]; });
+  STEPS.forEach(s=>{ const st=(d.steps||{})[s.k]||{text:"",tags:[]};
+    $("#act_"+s.k).value=st.text||""; L.forEach(l=>$(`#c_${s.k}_${l}`).checked=(st.tags||[]).includes(l)); });
+}
+
+/* ---- Analysis ---- */
+function hasWord(text, w){
+  let t = text;
+  (EXCLUDE[w]||[]).forEach(x=>{ t = t.split(x).join(" "); });
+  if(/^[a-z0-9: ]+$/.test(w)){ // คำภาษาอังกฤษ: ต้องเป็นคำทั้งคำ (กัน "ai" ใน "main")
+    const re = new RegExp("(^|[^a-z0-9])"+w.replace(/[.*+?^${}()|[\]\\]/g,"\\$&")+"([^a-z0-9]|$)");
+    return re.test(t);
+  }
+  return t.includes(w);
+}
+function countHits(text, list){ const t=String(text).toLowerCase(); return list.filter(w=>hasWord(t, w.toLowerCase())); }
+function analyze(d){
+  const stepText = k => String((d.steps[k]||{}).text||"");
+  const stepTags = k => (d.steps[k]||{}).tags||[];
+  const all = [d.title,d.objectives,d.assessment,d.materials,...STEPS.map(s=>stepText(s.k))].join(" ");
+  const filled = STEPS.filter(s=>stepText(s.k).trim().length>=MIN_STEP_TEXT);
+  const res = {letters:{}, found:{}, ignoredTicks:0};
+  L.forEach(l=>{
+    // นับเฉพาะขั้นที่ติ๊กและมีกิจกรรมจริง (กันการติ๊กครบแต่ไม่เขียนอะไร)
+    const ticked = STEPS.filter(s=>stepTags(s.k).includes(l));
+    const ticks = ticked.filter(s=>filled.includes(s)).length;
+    res.ignoredTicks += ticked.length - ticks;
+    const hits = countHits(all, KW[l]);
+    res.found[l]=hits;
+    const tickScore = Math.min(ticks/3,1)*60;       // ใช้จริงอย่างน้อย 3 ขั้น = เต็ม 60
+    const kwScore   = Math.min(hits.length/4,1)*40; // พบคำสำคัญ 4 คำ = เต็ม 40
+    res.letters[l] = Math.round(tickScore+kwScore);
+  });
+  res.dt = Math.round(filled.length/STEPS.length*100);
+  res.missingSteps = STEPS.filter(s=>!filled.includes(s)).map(s=>s.t);
+  const al = countHits(all, AL_KW); res.alFound=al;
+  res.al = Math.round(Math.min(al.length/6,1)*100);
+  res.steamAvg = Math.round(L.reduce((a,l)=>a+res.letters[l],0)/5);
+  res.total = Math.round(res.steamAvg*0.6 + res.dt*0.25 + res.al*0.15);
+  res.strong = L.filter(l=>res.letters[l]>=50);
+  return res;
+}
+function verdict(r){
+  const artsOK = r.letters.A>=50; // ไม่มี A ก็ไม่ใช่ STEAM
+  if(r.total>=80 && r.strong.length===5) return ["✅ เป็น STEAM สมบูรณ์ (ข้ามสาขา/Transdisciplinary)","#dcfce7","#166534"];
+  if(r.total>=65 && r.strong.length>=4 && artsOK) return ["✅ เป็น STEAM (สหวิทยาการ/Interdisciplinary)","#dcfce7","#166534"];
+  if(r.total>=45 && !artsOK) return ["⚠️ ใกล้เคียง STEM — ควรเพิ่มด้านศิลปะ (A)","#fef9c3","#854d0e"];
+  if(r.total>=45) return ["⚠️ STEAM บางส่วน (พหุวิทยาการ) — ควรทำ Design Thinking ให้ครบ/เพิ่มด้านที่ขาด","#fef9c3","#854d0e"];
+  return ["❌ ยังไม่เป็น STEAM — ควรเพิ่มการบูรณาการ","#fee2e2","#991b1b"];
+}
+
+
+/* ---- DT info cards ---- */
+$("#dtCards").innerHTML = STEPS.map((s,i)=>`
+  <div class="card step"><div class="num">${i+1}</div><div style="flex:1">
+    <h3 style="margin:0 0 4px">${s.icon} ${s.t}</h3><p style="margin:0 0 8px">${s.d}</p>
+    <div class="grid"><div><b>กิจกรรมแนะนำ</b><ul>${s.act.map(a=>`<li>${a}</li>`).join("")}</ul></div>
+    <div><b>คำถามกระตุ้นการคิด</b><ul>${s.q.map(a=>`<li>${a}</li>`).join("")}</ul></div></div>
+  </div></div>`).join("");
+
+/* ---- Step forms ---- */
+$("#stepForms").innerHTML = STEPS.map((s,i)=>`
+  <div class="card" style="margin-bottom:12px">
+    <div class="step"><div class="num">${i+1}</div><div style="flex:1">
+      <h3 style="margin:0">${s.icon} ${s.t}</h3><div class="muted">${s.d}</div>
+      <textarea id="act_${s.k}" aria-label="กิจกรรมขั้น ${s.t}" placeholder="กิจกรรม: ${s.act[0]}..."></textarea>
+      <div class="checks">${L.map(l=>`<label><input type="checkbox" id="c_${s.k}_${l}"> <b style="color:${COLORS[l]}">${l}</b> ${LN[l]}</label>`).join("")}</div>
+    </div></div>
+  </div>`).join("");
+
+
+const TIPS = {
+  S:"เพิ่มคำถามเชิงวิทยาศาสตร์ การตั้งสมมติฐาน/ทดลอง อธิบายหลักการที่อยู่เบื้องหลังปัญหา",
+  T:"ให้ผู้เรียนใช้เครื่องมือ/เทคโนโลยี เช่น สืบค้นข้อมูล, Canva, micro:bit, ถ่ายวิดีโอบันทึกผล",
+  E:"เพิ่มขั้นออกแบบ–สร้าง–ทดสอบ–ปรับปรุง ภายใต้เงื่อนไข (วัสดุ งบ เวลา)",
+  A:"เพิ่มการ Sketch, ตกแต่งให้สวยงาม, ออกแบบโดยเข้าใจผู้ใช้ (Empathy), โปสเตอร์/เล่าเรื่อง",
+  M:"ให้วัดขนาด คำนวณต้นทุน เก็บข้อมูลการทดสอบเป็นตาราง/กราฟ หาค่าเฉลี่ยหรือร้อยละ"
+};
+
+function esc(s){ return String(s ?? "").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c])).replace(/\n/g,"<br>"); }
+
+function render(d,r){
+  const [vt,vbg,vfg] = verdict(r);
+  const bar = (name,v,c)=>`<div class="row"><div>${name}</div><div class="bar"><i style="width:${v}%;background:${c}"></i></div><b>${v}%</b></div>`;
+  const tips = [];
+  L.forEach(l=>{ if(r.letters[l]<50) tips.push(`<b style="color:${COLORS[l]}">${LN[l]} (${r.letters[l]}%)</b>: ${TIPS[l]}`); });
+  if(r.missingSteps.length) tips.push(`<b>Design Thinking</b>: ยังขาด/เขียนน้อยเกินไปในขั้น — ${r.missingSteps.join(", ")}`);
+  if(r.al<60) tips.push(`<b>Active Learning</b>: เพิ่มการทำงานกลุ่ม อภิปราย ลงมือปฏิบัติ นำเสนอ และสะท้อนคิด`);
+  if(!tips.length) tips.push("ยอดเยี่ยม! แผนนี้บูรณาการครบถ้วน ลองเพิ่มการเชื่อมโยงชุมชนหรือเผยแพร่นวัตกรรมสู่สาธารณะ");
+
+  $("#resultBox").innerHTML = `
+    <h2 style="margin-top:0">${esc(d.title)||"(ไม่มีชื่อโครงการ)"} <span class="muted" style="font-size:1rem">${esc(d.grade)} · ${esc(d.subject)||"-"} · ${esc(d.hours)} ชม.</span></h2>
+    <div class="grid">
+      <div><div class="muted">คะแนนความเป็น STEAM รวม</div><div class="big" style="color:${vfg}">${r.total}%</div>
+        <div class="verdict" style="background:${vbg};color:${vfg}">${vt}</div>
+        <p class="muted" style="font-size:.9rem">สูตร: ค่าเฉลี่ย S-T-E-A-M 60% + Design Thinking 25% + Active Learning 15%</p></div>
+      <div style="text-align:center"><canvas id="radar" width="320" height="300"></canvas></div>
+    </div>
+    <h3>คะแนนรายด้าน</h3>
+    ${L.map(l=>bar(`<b style="color:${COLORS[l]}">${l}</b> ${LN[l]}`,r.letters[l],COLORS[l])).join("")}
+    ${bar("💡 Design Thinking",r.dt,"#7c3aed")}
+    ${bar("🤝 Active Learning",r.al,"#0f766e")}
+    <h3>💬 ข้อเสนอแนะเพื่อพัฒนาแผน</h3><ul class="tips">${tips.map(t=>`<li>${t}</li>`).join("")}</ul>
+    <h3>🔎 คำสำคัญที่พบ</h3>
+    ${L.map(l=>`<div><b style="color:${COLORS[l]}">${l}</b>: ${r.found[l].join(", ")||"<span class='muted'>-</span>"}</div>`).join("")}
+    <div><b>Active Learning</b>: ${r.alFound.join(", ")||"-"}</div>
+    <h3>📋 สรุปแผนการสอน</h3>
+    <p><b>จุดประสงค์:</b> ${esc(d.objectives)||"-"}</p>
+    <table><tr><th>ขั้น</th><th>กิจกรรม</th><th>STEAM</th></tr>
+      ${STEPS.map((s,i)=>`<tr><td>${i+1}. ${s.t}</td><td>${esc(d.steps[s.k].text)||"-"}</td><td>${d.steps[s.k].tags.map(l=>`<b style="color:${COLORS[l]}">${l}</b>`).join(" ")||"-"}</td></tr>`).join("")}
+    </table>
+    <p><b>การวัดผล:</b> ${esc(d.assessment)||"-"}</p><p><b>สื่อ:</b> ${esc(d.materials)||"-"}</p>
+    <div class="actions"><button class="btn" onclick="print()">🖨️ พิมพ์ / บันทึก PDF</button>
+    <button class="btn alt" onclick="showTab('plan')">✏️ กลับไปแก้ไข</button></div>`;
+  drawRadar(r.letters);
+}
+
+function drawRadar(v){
+  const c=$("#radar"), x=c.getContext("2d"), cx=160, cy=155, R=110;
+  const pt=(i,r)=>{const a=-Math.PI/2+i*2*Math.PI/5; return [cx+r*Math.cos(a), cy+r*Math.sin(a)];};
+  x.clearRect(0,0,c.width,c.height); x.strokeStyle="#e5e7eb";
+  for(let k=1;k<=4;k++){ x.beginPath(); L.forEach((_,i)=>{const [a,b]=pt(i,R*k/4); i?x.lineTo(a,b):x.moveTo(a,b);}); x.closePath(); x.stroke(); }
+  L.forEach((l,i)=>{ const [a,b]=pt(i,R); x.beginPath(); x.moveTo(cx,cy); x.lineTo(a,b); x.stroke();
+    const [lx,ly]=pt(i,R+22); x.fillStyle=COLORS[l]; x.font="bold 18px sans-serif"; x.textAlign="center"; x.textBaseline="middle"; x.fillText(l,lx,ly); });
+  x.beginPath(); L.forEach((l,i)=>{const [a,b]=pt(i,R*v[l]/100); i?x.lineTo(a,b):x.moveTo(a,b);}); x.closePath();
+  x.fillStyle="rgba(124,58,237,.25)"; x.fill(); x.strokeStyle="#7c3aed"; x.lineWidth=2; x.stroke(); x.lineWidth=1;
+}
+
+/* ---- Buttons ---- */
+$("#analyze").onclick = ()=>{ const d=collect(); localStorage.setItem("steamPlan",JSON.stringify(d)); render(d,analyze(d)); showTab("result"); };
+$("#save").onclick = ()=>{ localStorage.setItem("steamPlan",JSON.stringify(collect())); alert("บันทึกแล้ว"); };
+$("#clear").onclick = ()=>{ if(confirm("ล้างข้อมูลทั้งหมด?")){ localStorage.removeItem("steamPlan"); fill({title:"",subject:"",objectives:"",assessment:"",materials:"",hours:6,steps:{}}); } };
+$("#exportJson").onclick = ()=>{ const d=collect(); const a=document.createElement("a");
+  a.href=URL.createObjectURL(new Blob([JSON.stringify(d,null,2)],{type:"application/json"})); a.download=(d.title||"steam-plan")+".json"; a.click(); };
+$("#importJson").onchange = e=>{ const f=e.target.files[0]; if(!f) return; f.text().then(t=>{ try{ fill(JSON.parse(t)); alert("นำเข้าเรียบร้อย"); }catch(err){ alert("ไฟล์ไม่ถูกต้อง"); } }); e.target.value=""; };
+$("#sample").onclick = ()=>fill({
+  title:"เรือลอยน้ำจากวัสดุเหลือใช้ ช่วยชุมชนช่วงน้ำท่วม", grade:"ป.4-6", subject:"วิทยาศาสตร์และเทคโนโลยี", hours:8,
+  objectives:"1. อธิบายหลักการลอยและจมของวัตถุได้\n2. ออกแบบและสร้างเรือจากวัสดุเหลือใช้ที่บรรทุกน้ำหนักได้มากที่สุด\n3. ทำงานร่วมกันเป็นทีมและนำเสนอผลงานได้อย่างสร้างสรรค์",
+  assessment:"Rubric ชิ้นงาน (ความแข็งแรง ความสวยงาม ความคิดสร้างสรรค์), แบบสังเกตการทำงานกลุ่ม, การนำเสนอ, แบบประเมินตนเอง",
+  materials:"ขวดพลาสติก กล่องนม หลอด เทปกาว อ่างน้ำ เหรียญ/ลูกแก้ว ตาชั่ง ไม้บรรทัด แท็บเล็ต",
+  steps:{
+    problem:{text:"นักเรียนดูวิดีโอข่าวน้ำท่วมในชุมชน สัมภาษณ์ผู้ปกครอง แล้วอภิปรายกลุ่มตั้งคำถาม “เราจะสร้างเรือจากวัสดุเหลือใช้ให้บรรทุกของได้มากที่สุดได้อย่างไร?” ศึกษาหลักการลอยจมของวัตถุ แรงลอยตัว",tags:["S","A"]},
+    idea:{text:"ระดมความคิดเป็นทีม สืบค้นข้อมูลรูปทรงเรือจากอินเทอร์เน็ต วาด Sketch แบบร่างเรือ 3 แบบ ระบุขนาด และเลือกแบบที่ดีที่สุดโดยเปรียบเทียบต้นทุนและความเป็นไปได้",tags:["T","A","M","E"]},
+    prototype:{text:"ลงมือสร้างต้นแบบเรือตามแบบร่าง วัดความยาว คำนวณพื้นที่ฐานเรือ ภายใต้เงื่อนไขงบประมาณวัสดุ 20 บาท และตกแต่งให้สวยงามตามเอกลักษณ์ชุมชน",tags:["E","M","A"]},
+    feedback:{text:"ทดสอบเรือในอ่างน้ำ ใส่เหรียญจนจม บันทึกข้อมูลลงตาราง ทำกราฟเปรียบเทียบแต่ละกลุ่ม ให้เพื่อนประเมินแบบ Gallery walk",tags:["S","M","E","T"]},
+    improve:{text:"วิเคราะห์สาเหตุที่เรือจม ปรับปรุงโครงสร้างเพิ่มความแข็งแรง ทดสอบซ้ำและคำนวณร้อยละการบรรทุกที่เพิ่มขึ้น",tags:["E","S","M"]},
+    innovation:{text:"นำเสนอนวัตกรรมเรือด้วยโปสเตอร์และคลิปวิดีโอ เล่าเรื่องการใช้งานจริงในชุมชน จัดนิทรรศการ และสะท้อนคิดสิ่งที่ได้เรียนรู้",tags:["A","T"]}
+  }});
+
+/* ---- Load saved ---- */
+try{ const s=localStorage.getItem("steamPlan"); if(s) fill(JSON.parse(s)); }catch(err){}
+
+// Populate sample select
+const sel = $("#sampleSelect");
+SAMPLES.forEach((s,i) => {
+  const opt = document.createElement("option");
+  opt.value = i;
+  opt.textContent = `${s.group} - ${s.variant}`;
+  sel.appendChild(opt);
+});
+sel.onchange = (e) => {
+  const i = e.target.value;
+  if(i !== "") {
+    fill(SAMPLES[i].data);
+    sel.value = ""; // reset
+  }
+};
+</script>
+</body>
+</html>

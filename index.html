@@ -86,7 +86,7 @@
 </head>
 <body>
 <header style="position:relative">
-  <button class="btn alt" style="position:absolute; top:16px; right:16px; font-size:12px; padding:4px 8px;" onclick="window.location.href = window.location.pathname + '?v=' + new Date().getTime()">🔄 อัปเดตเวอร์ชัน (v.3)</button>
+  <button class="btn alt" style="position:absolute; top:16px; right:16px; font-size:12px; padding:4px 8px;" onclick="window.location.href = window.location.pathname + '?v=' + new Date().getTime()">🔄 อัปเดตเวอร์ชัน (v.4)</button>
   <h1>🎨 STEAM Active Learning Designer</h1>
   <p>เครื่องมือช่วยครูออกแบบแผนการสอนแบบ STEAM ด้วยกระบวนการ Design Thinking 6 ขั้น</p>
   <nav role="tablist">
@@ -566,7 +566,7 @@ const TIPS = {
   M:"ให้วัดขนาด คำนวณต้นทุน เก็บข้อมูลการทดสอบเป็นตาราง/กราฟ หาค่าเฉลี่ยหรือร้อยละ"
 };
 
-function esc(s){ return String(s ?? "").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c])).replace(/\n/g,"<br>"); }
+function esc(s){ return String(s || "").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c])).replace(/\n/g,"<br>"); }
 
 function render(d,r){
   const [vt,vbg,vfg] = verdict(r);
@@ -744,14 +744,14 @@ function createNote(x, y, text="", id=null, color="yellow", owner=null) {
   el.id = id;
   
   const colorsHtml = Object.keys(NOTE_COLORS).map(k => 
-    `<div class="color-btn" style="background:${NOTE_COLORS[k].bg}" onpointerdown="event.stopPropagation(); changeColor('${id}', '${k}')"></div>`
+    `<div class="color-btn" style="background:${NOTE_COLORS[k].bg}" onmousedown="event.stopPropagation(); changeColor('${id}', '${k}')"></div>`
   ).join('');
 
   el.innerHTML = `
     <div class="tools">${colorsHtml}</div>
-    <button class="del-btn" onpointerdown="event.stopPropagation(); deleteNote('${id}')">✕</button>
-    <button class="add-branch" onpointerdown="event.stopPropagation(); branchNote('${id}')" title="สร้างหัวข้อย่อยเชื่อมต่อทันที">➕</button>
-    <div contenteditable="true" oninput="nodesData['${id}'].text=this.innerText; saveBoard();" onpointerdown="event.stopPropagation()">${text}</div>
+    <button class="del-btn" onmousedown="event.stopPropagation(); deleteNote('${id}')">✕</button>
+    <button class="add-branch" onmousedown="event.stopPropagation(); branchNote('${id}')" title="สร้างหัวข้อย่อยเชื่อมต่อทันที">➕</button>
+    <div contenteditable="true" oninput="nodesData['${id}'].text=this.innerText; saveBoard();" onmousedown="event.stopPropagation()">${text}</div>
     <div class="owner">👤 ${owner}</div>
     <div class="link-dot"></div>
   `;
@@ -760,7 +760,7 @@ function createNote(x, y, text="", id=null, color="yellow", owner=null) {
   changeColor(id, color);
   saveBoard();
   
-  el.onpointerdown = (e) => {
+  const downFn = (e) => {
     if(e.target.hasAttribute("contenteditable")) return;
     if(e.target.className === "link-dot") { 
       isLinking = id; e.stopPropagation(); 
@@ -770,6 +770,8 @@ function createNote(x, y, text="", id=null, color="yellow", owner=null) {
     isDragging = id; el.classList.add("dragging"); 
     try { el.setPointerCapture(e.pointerId); } catch(err) {}
   };
+  el.onmousedown = downFn;
+  el.ontouchstart = downFn;
   
   if (isNew) {
     setTimeout(() => { const ce = el.querySelector('[contenteditable]'); if(ce) ce.focus(); }, 50);
@@ -802,10 +804,11 @@ board.ondblclick = (e) => {
   if (e.target === board || e.target.id === "boardLines") createNote(e.offsetX - 75, e.offsetY - 20);
 };
 
-window.addEventListener("pointermove", (e) => {
+const moveFn = (e) => {
   if (!isDragging && !isLinking) return;
+  const evt = e.type.startsWith('touch') ? e.touches[0] : e;
   const rect = board.getBoundingClientRect();
-  const mx = e.clientX - rect.left, my = e.clientY - rect.top;
+  const mx = evt.clientX - rect.left, my = evt.clientY - rect.top;
   if (isDragging) {
     const n = nodesData[isDragging];
     n.x = mx - 75; n.y = my - 10;
@@ -814,17 +817,20 @@ window.addEventListener("pointermove", (e) => {
   } else if (isLinking) {
     tempX = mx; tempY = my; drawLines();
   }
-});
+};
+window.addEventListener("mousemove", moveFn);
+window.addEventListener("touchmove", moveFn, {passive: false});
 
-window.addEventListener("pointerup", (e) => {
+const upFn = (e) => {
   if (!isDragging && !isLinking) return;
+  const evt = e.type.startsWith('touch') ? e.changedTouches[0] : e;
   const activeId = isDragging || isLinking;
   if (activeId && nodesData[activeId]) {
     try { nodesData[activeId].el.releasePointerCapture(e.pointerId); } catch(err) {}
   }
 
   if (isLinking) {
-    const elUnder = document.elementFromPoint(e.clientX, e.clientY);
+    const elUnder = document.elementFromPoint(evt.clientX, evt.clientY);
     const targetEl = elUnder ? elUnder.closest(".note") : null;
     if (targetEl && targetEl.id !== isLinking) {
       linksData.push({ f: isLinking, t: targetEl.id }); saveBoard();
@@ -832,7 +838,9 @@ window.addEventListener("pointerup", (e) => {
   }
   if (isDragging && nodesData[isDragging]) nodesData[isDragging].el.classList.remove("dragging");
   isDragging = null; isLinking = null; drawLines();
-});
+};
+window.addEventListener("mouseup", upFn);
+window.addEventListener("touchend", upFn);
 
 $("#addNoteBtn").onclick = () => createNote(50, 50, "ไอเดียใหม่");
 $("#clearBoardBtn").onclick = () => {
@@ -1025,7 +1033,7 @@ const CURRICULUM_DATA = {
 };
 
 window.openCurriculumModal = () => {
-  document.getElementById('curriculumModal').hidden = false;
+  document.getElementById('curriculumModal').style.display = 'flex';
   renderCurriculum();
 };
 
@@ -1073,11 +1081,11 @@ window.insertCurriculum = () => {
   if(objArea.value.trim() !== "") objArea.value += "\n\n" + txt;
   else objArea.value = txt;
   
-  document.getElementById('curriculumModal').hidden = true;
+  document.getElementById('curriculumModal').style.display = 'none';
 };
 </script>
 <!-- ============ Curriculum Modal ============ -->
-<div id="curriculumModal" class="modal" hidden>
+<div id="curriculumModal" class="modal" style="display:none;">
   <div class="modal-content">
     <h3 style="margin-top:0">📚 เลือกมาตรฐานการเรียนรู้ / ตัวชี้วัด (ม.ต้น)</h3>
     <select id="curriculumSubject" onchange="renderCurriculum()" style="width:100%; margin-bottom:12px; padding:8px; font-size:14px; border-radius:4px; border:1px solid #ccc;">
@@ -1093,7 +1101,7 @@ window.insertCurriculum = () => {
     <div id="curriculumList" style="max-height:350px; overflow-y:auto; border:1px solid #e2e8f0; padding:12px; border-radius:4px; font-size:13px; display:flex; flex-direction:column; gap:8px;">
     </div>
     <div style="display:flex; justify-content:flex-end; gap:8px; margin-top:16px;">
-      <button class="btn alt" onclick="document.getElementById('curriculumModal').hidden=true">ยกเลิก</button>
+      <button class="btn alt" onclick="document.getElementById('curriculumModal').style.display='none'">ยกเลิก</button>
       <button class="btn" onclick="insertCurriculum()">➕ แทรกที่เลือก</button>
     </div>
   </div>
@@ -1101,3 +1109,4 @@ window.insertCurriculum = () => {
 
 </body>
 </html>
+

@@ -86,7 +86,7 @@
 </head>
 <body>
 <header style="position:relative">
-  <button class="btn alt" style="position:absolute; top:16px; right:16px; font-size:12px; padding:4px 8px;" onclick="window.location.href = window.location.pathname + '?v=' + new Date().getTime()">🔄 อัปเดตเวอร์ชัน (v.4)</button>
+  <button class="btn alt" style="position:absolute; top:16px; right:16px; font-size:12px; padding:4px 8px;" onclick="window.location.href = window.location.pathname + '?v=' + new Date().getTime()">🔄 อัปเดตเวอร์ชัน (v.5)</button>
   <h1>🎨 STEAM Active Learning Designer</h1>
   <p>เครื่องมือช่วยครูออกแบบแผนการสอนแบบ STEAM ด้วยกระบวนการ Design Thinking 6 ขั้น</p>
   <nav role="tablist">
@@ -744,14 +744,14 @@ function createNote(x, y, text="", id=null, color="yellow", owner=null) {
   el.id = id;
   
   const colorsHtml = Object.keys(NOTE_COLORS).map(k => 
-    `<div class="color-btn" style="background:${NOTE_COLORS[k].bg}" onmousedown="event.stopPropagation(); changeColor('${id}', '${k}')"></div>`
+    `<div class="color-btn" style="background:${NOTE_COLORS[k].bg}" onmousedown="event.stopPropagation(); changeColor('${id}', '${k}')" ontouchstart="event.stopPropagation(); changeColor('${id}', '${k}')"></div>`
   ).join('');
 
   el.innerHTML = `
     <div class="tools">${colorsHtml}</div>
-    <button class="del-btn" onmousedown="event.stopPropagation(); deleteNote('${id}')">✕</button>
-    <button class="add-branch" onmousedown="event.stopPropagation(); branchNote('${id}')" title="สร้างหัวข้อย่อยเชื่อมต่อทันที">➕</button>
-    <div contenteditable="true" oninput="nodesData['${id}'].text=this.innerText; saveBoard();" onmousedown="event.stopPropagation()">${text}</div>
+    <button class="del-btn" onmousedown="event.stopPropagation(); deleteNote('${id}')" ontouchstart="event.stopPropagation(); deleteNote('${id}')">✕</button>
+    <button class="add-branch" onmousedown="event.stopPropagation(); branchNote('${id}')" ontouchstart="event.stopPropagation(); branchNote('${id}')" title="สร้างหัวข้อย่อยเชื่อมต่อทันที">➕</button>
+    <div contenteditable="true" oninput="nodesData['${id}'].text=this.innerText; saveBoard();" onmousedown="event.stopPropagation()" ontouchstart="event.stopPropagation()">${text}</div>
     <div class="owner">👤 ${owner}</div>
     <div class="link-dot"></div>
   `;

@@ -79,6 +79,8 @@
   .note .add-branch { position:absolute; top:calc(50% - 12px); right:-12px; background:#22c55e; color:#fff; border:none; border-radius:50%; width:24px; height:24px; cursor:pointer; display:none; align-items:center; justify-content:center; font-size:14px; font-weight:bold; box-shadow:0 2px 4px rgba(0,0,0,0.2); }
   .note:hover .add-branch { display:flex; }
   .note .owner { position:absolute; bottom:4px; right:6px; font-size:9px; color:rgba(0,0,0,0.4); pointer-events:none; }
+  .modal { position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); display:flex; align-items:center; justify-content:center; z-index:100; }
+  .modal-content { background:#fff; padding:20px; border-radius:8px; width:90%; max-width:600px; box-shadow:0 10px 25px rgba(0,0,0,0.2); }
 </style>
 </head>
 <body>
@@ -175,7 +177,11 @@
       <div><label for="subject">วิชาหลัก</label><input type="text" id="subject"></div>
       <div><label for="hours">เวลา (ชั่วโมง)</label><input type="number" id="hours" min="1" value="6"></div>
     </div>
-    <label for="objectives">จุดประสงค์การเรียนรู้</label><textarea id="objectives" placeholder="ผู้เรียนสามารถ..."></textarea>
+    <div style="display:flex; justify-content:space-between; align-items:flex-end;">
+      <label for="objectives" style="margin-bottom:4px;">จุดประสงค์การเรียนรู้ / มาตรฐาน / ตัวชี้วัด</label>
+      <button class="btn alt" style="font-size:11px; padding:4px 8px; background:#f0f9ff; color:#0369a1; border:1px solid #bae6fd; margin-bottom:4px;" onclick="openCurriculumModal()">📚 เลือกตัวชี้วัด ม.ต้น (8 กลุ่มสาระฯ)</button>
+    </div>
+    <textarea id="objectives" placeholder="ผู้เรียนสามารถ..."></textarea>
   </div>
 
   <h3>กิจกรรมตาม Design Thinking 6 ขั้น <span class="muted" style="font-weight:400">(ติ๊กว่าขั้นนี้ใช้หลัก STEAM ด้านใด)</span></h3>
@@ -925,6 +931,116 @@ window.loadSharedPlan = (id) => {
     badge.innerText = `⬇️ นำไปใช้ ${count + 1} ครั้ง`;
   }
 };
+
+/* ---- Curriculum Modal Logic ---- */
+const CURRICULUM_DATA = {
+  "วิทยาศาสตร์และเทคโนโลยี": [
+    "ว 1.2 เข้าใจสมบัติของสิ่งมีชีวิต หน่วยพื้นฐานของสิ่งมีชีวิต การลำเลียงสารเข้าและออกจากเซลล์ ความสัมพันธ์ของโครงสร้าง...",
+    "ว 2.1 เข้าใจสมบัติของสสาร องค์ประกอบของสสาร ความสัมพันธ์ระหว่างสมบัติของสสารกับโครงสร้างและแรงยึดเหนี่ยว...",
+    "ว 2.2 เข้าใจธรรมชาติของแรงในชีวิตประจำวัน ผลของแรงที่กระทำต่อวัตถุ ลักษณะการเคลื่อนที่แบบต่างๆ...",
+    "ว 2.3 เข้าใจความหมายของพลังงาน การเปลี่ยนแปลงและการถ่ายโอนพลังงาน ปฏิสัมพันธ์ระหว่างสสารและพลังงาน...",
+    "ว 3.2 เข้าใจองค์ประกอบและความสัมพันธ์ของระบบโลก กระบวนการเปลี่ยนแปลงภายในโลกและบนผิวโลก...",
+    "ว 4.1 เข้าใจแนวคิดหลักของเทคโนโลยีเพื่อการดำรงชีวิตในสังคมที่มีการเปลี่ยนแปลงอย่างรวดเร็ว...",
+    "ว 4.2 เข้าใจและใช้แนวคิดเชิงคำนวณในการแก้ปัญหาที่พบในชีวิตจริงอย่างเป็นขั้นตอนและเป็นระบบ..."
+  ],
+  "คณิตศาสตร์": [
+    "ค 1.1 เข้าใจความหลากหลายของการแสดงจำนวน ระบบจำนวน การดำเนินการของจำนวน ผลที่เกิดขึ้น...",
+    "ค 1.2 เข้าใจและวิเคราะห์แบบรูป ความสัมพันธ์ ฟังก์ชัน ลำดับและอนุกรม...",
+    "ค 2.1 เข้าใจพื้นฐานเกี่ยวกับการวัด วัดและคาดคะเนขนาดของสิ่งที่ต้องการวัด...",
+    "ค 2.2 เข้าใจและวิเคราะห์รูปเรขาคณิต สมบัติของรูปเรขาคณิต ความสัมพันธ์ระหว่างรูปเรขาคณิต...",
+    "ค 3.1 เข้าใจกระบวนการทางสถิติ และใช้ความรู้ทางสถิติในการแก้ปัญหา...",
+    "ค 3.2 เข้าใจหลักการนับเบื้องต้น ความน่าจะเป็น และนำไปใช้..."
+  ],
+  "ภาษาไทย": [
+    "ท 1.1 ใช้กระบวนการอ่านสร้างความรู้และความคิดเพื่อนำไปใช้ตัดสินใจ แก้ปัญหาในการดำเนินชีวิต และมีนิสัยรักการอ่าน",
+    "ท 2.1 ใช้กระบวนการเขียนเขียนสื่อสาร เขียนเรียงความ ย่อความ และเขียนเรื่องราวในรูปแบบต่างๆ",
+    "ท 3.1 สามารถเลือกฟังและดูอย่างมีวิจารณญาณ และพูดแสดงความรู้ ความคิด และความรู้สึกในโอกาสต่างๆ",
+    "ท 4.1 เข้าใจธรรมชาติของภาษาและหลักภาษาไทย การเปลี่ยนแปลงของภาษาและพลังของภาษา...",
+    "ท 5.1 เข้าใจและแสดงความคิดเห็น วิจารณ์วรรณคดีและวรรณกรรมไทยอย่างเห็นคุณค่า..."
+  ],
+  "สังคมศึกษา ศาสนา และวัฒนธรรม": [
+    "ส 1.1 รู้ และเข้าใจประวัติ ความสำคัญ ศาสดา หลักธรรมของพระพุทธศาสนาหรือศาสนาที่ตนนับถือ...",
+    "ส 2.1 เข้าใจและปฏิบัติตนตามหน้าที่ของการเป็นพลเมืองดี มีค่านิยมที่ดีงาม และธำรงรักษาประเพณี...",
+    "ส 3.1 เข้าใจและสามารถบริหารจัดการทรัพยากรในการผลิตและการบริโภคการใช้ทรัพยากรที่มีอยู่จำกัด...",
+    "ส 4.1 เข้าใจความหมาย ความสำคัญของเวลา และยุคสมัยทางประวัติศาสตร์...",
+    "ส 5.1 เข้าใจลักษณะทางกายภาพของโลกและความสัมพันธ์ของสรรพสิ่งซึ่งมีผลต่อกัน..."
+  ],
+  "สุขศึกษาและพลศึกษา": [
+    "พ 1.1 เข้าใจธรรมชาติของการเจริญเติบโตและพัฒนาการของมนุษย์",
+    "พ 2.1 เข้าใจและเห็นคุณค่าตนเอง ครอบครัว เพศศึกษา และมีทักษะในการดำเนินชีวิต",
+    "พ 3.1 เข้าใจ มีทักษะในการเคลื่อนไหว กิจกรรมทางกาย การเล่นเกม และกีฬา",
+    "พ 4.1 เห็นคุณค่าและมีทักษะในการสร้างเสริมสุขภาพ การดำรงสุขภาพ การป้องกันโรค...",
+    "พ 5.1 ป้องกันและหลีกเลี่ยงปัจจัยเสี่ยง พฤติกรรมเสี่ยงต่อสุขภาพ อุบัติเหตุ การใช้ยา..."
+  ],
+  "ศิลปะ": [
+    "ศ 1.1 สร้างสรรค์งานทัศนศิลป์ตามจินตนาการ และความคิดสร้างสรรค์ วิเคราะห์ วิพากษ์ วิจารณ์...",
+    "ศ 2.1 เข้าใจและแสดงออกทางดนตรีอย่างสร้างสรรค์ วิเคราะห์ วิพากษ์วิจารณ์คุณค่าดนตรี...",
+    "ศ 3.1 เข้าใจ และแสดงออกทางนาฏศิลป์อย่างสร้างสรรค์ วิเคราะห์ วิพากษ์วิจารณ์คุณค่า..."
+  ],
+  "การงานอาชีพ": [
+    "ง 1.1 เข้าใจการทำงาน มีความคิดสร้างสรรค์ มีทักษะกระบวนการทำงาน ทักษะการจัดการ...",
+    "ง 2.1 เข้าใจ มีทักษะที่จำเป็น มีประสบการณ์ เห็นแนวทางในงานอาชีพ..."
+  ],
+  "ภาษาต่างประเทศ": [
+    "ต 1.1 เข้าใจและตีความเรื่องที่ฟังและอ่านจากสื่อประเภทต่างๆ และแสดงความคิดเห็น...",
+    "ต 1.2 มีทักษะการสื่อสารทางภาษาในการแลกเปลี่ยนข้อมูลข่าวสาร แสดงความรู้สึก...",
+    "ต 2.1 เข้าใจความสัมพันธ์ระหว่างภาษากับวัฒนธรรมของเจ้าของภาษา...",
+    "ต 3.1 ใช้ภาษาต่างประเทศในการเชื่อมโยงความรู้กับกลุ่มสาระการเรียนรู้อื่น...",
+    "ต 4.1 ใช้ภาษาต่างประเทศในสถานการณ์ต่างๆ ทั้งในสถานศึกษา ชุมชน และสังคม..."
+  ]
+};
+
+window.openCurriculumModal = () => {
+  document.getElementById('curriculumModal').hidden = false;
+  renderCurriculum();
+};
+
+window.renderCurriculum = () => {
+  const subj = document.getElementById('curriculumSubject').value;
+  const list = CURRICULUM_DATA[subj];
+  document.getElementById('curriculumList').innerHTML = list.map(c => `
+    <label style="display:flex; gap:8px; align-items:flex-start; cursor:pointer; padding:4px;">
+      <input type="checkbox" value="${c}" class="curriculum-chk" style="margin-top:2px;">
+      <span>${c}</span>
+    </label>
+  `).join("");
+};
+
+window.insertCurriculum = () => {
+  const chks = document.querySelectorAll('.curriculum-chk:checked');
+  if(chks.length === 0) return alert("กรุณาเลือกมาตรฐานอย่างน้อย 1 รายการ");
+  
+  let txt = Array.from(chks).map(c => "- มาตรฐาน " + c.value).join("\n");
+  const objArea = document.getElementById("objectives");
+  
+  if(objArea.value.trim() !== "") objArea.value += "\n\n" + txt;
+  else objArea.value = txt;
+  
+  document.getElementById('curriculumModal').hidden = true;
+};
 </script>
+<!-- ============ Curriculum Modal ============ -->
+<div id="curriculumModal" class="modal" hidden>
+  <div class="modal-content">
+    <h3 style="margin-top:0">📚 เลือกมาตรฐานการเรียนรู้ / ตัวชี้วัด (ม.ต้น)</h3>
+    <select id="curriculumSubject" onchange="renderCurriculum()" style="width:100%; margin-bottom:12px; padding:8px; font-size:14px; border-radius:4px; border:1px solid #ccc;">
+      <option value="วิทยาศาสตร์และเทคโนโลยี">วิทยาศาสตร์และเทคโนโลยี</option>
+      <option value="คณิตศาสตร์">คณิตศาสตร์</option>
+      <option value="ภาษาไทย">ภาษาไทย</option>
+      <option value="สังคมศึกษา ศาสนา และวัฒนธรรม">สังคมศึกษา ศาสนา และวัฒนธรรม</option>
+      <option value="สุขศึกษาและพลศึกษา">สุขศึกษาและพลศึกษา</option>
+      <option value="ศิลปะ">ศิลปะ</option>
+      <option value="การงานอาชีพ">การงานอาชีพ</option>
+      <option value="ภาษาต่างประเทศ">ภาษาต่างประเทศ (อังกฤษ)</option>
+    </select>
+    <div id="curriculumList" style="max-height:350px; overflow-y:auto; border:1px solid #e2e8f0; padding:12px; border-radius:4px; font-size:13px; display:flex; flex-direction:column; gap:8px;">
+    </div>
+    <div style="display:flex; justify-content:flex-end; gap:8px; margin-top:16px;">
+      <button class="btn alt" onclick="document.getElementById('curriculumModal').hidden=true">ยกเลิก</button>
+      <button class="btn" onclick="insertCurriculum()">➕ แทรกที่เลือก</button>
+    </div>
+  </div>
+</div>
+
 </body>
 </html>

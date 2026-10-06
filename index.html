@@ -151,7 +151,7 @@
         <p class="muted" style="margin:4px 0 0 0">ดับเบิลคลิกสร้างโพสต์อิท, ลากเพื่อย้าย, ลากจุดสีน้ำเงินเพื่อวาดเส้นเชื่อมโยง</p>
       </div>
       <div style="display:flex; gap:6px; align-items:center; flex-wrap:wrap;">
-        <input type="text" id="gasUrl" placeholder="🔗 วางลิงก์ Google Sheets Web App ที่นี่" style="width:200px; padding:6px; font-size:12px; border:1px solid #ccc; border-radius:4px;" onchange="localStorage.setItem('gasUrl', this.value)">
+        <input type="text" id="gasUrl" value="https://script.google.com/macros/s/AKfycbyz4RrTJs4jFg9Lvr_6qK6YGqcbRbwV_HVJ4xoyXbjzDjIklbAQjEP1_A73MWRoLxeu/exec" placeholder="🔗 วางลิงก์ Google Sheets Web App ที่นี่" style="width:200px; padding:6px; font-size:12px; border:1px solid #ccc; border-radius:4px;" onchange="localStorage.setItem('gasUrl', this.value)">
         <button class="btn" onclick="syncToCloud()" style="background:#8b5cf6; padding:6px 10px; font-size:12px;">☁️ เซฟขึ้นคลาวด์</button>
         <button class="btn alt" onclick="syncFromCloud()" style="padding:6px 10px; font-size:12px;">⬇️ โหลดข้อมูล</button>
         <button class="btn" id="addNoteBtn" style="padding:6px 10px; font-size:12px;">➕ เพิ่มโพสต์อิท</button>
@@ -644,10 +644,16 @@ const boardLines = $("#boardLines");
 let isDragging = null, isLinking = null, tempX = 0, tempY = 0;
 let currentUser = localStorage.getItem("steamUser") || "";
 
-// Initialize gasUrl from localStorage
+// Initialize gasUrl from localStorage if available
 document.addEventListener("DOMContentLoaded", () => {
   const urlInput = $("#gasUrl");
-  if(urlInput) urlInput.value = localStorage.getItem("gasUrl") || "";
+  const savedUrl = localStorage.getItem("gasUrl");
+  if(urlInput && savedUrl) urlInput.value = savedUrl;
+  
+  // Auto-fetch library when clicking the library tab
+  document.querySelector('[data-tab="library"]').addEventListener('click', () => {
+    if(document.getElementById("libraryGrid").innerText.includes("กดปุ่ม")) fetchLibrary();
+  });
 });
 
 function saveBoard() { localStorage.setItem("steamBoard", JSON.stringify({nodes: nodesData, links: linksData})); }

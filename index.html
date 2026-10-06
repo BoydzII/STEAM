@@ -64,6 +64,15 @@
     /* Force page breaks if needed, but primarily avoid breaking cards */
     @page { size: A4; margin: 15mm; }
   }
+  
+  /* ---- Idea Board ---- */
+  .note { position:absolute; width:150px; background:#fef08a; border:1px solid #facc15; box-shadow:0 4px 6px rgba(0,0,0,0.1); padding:12px; border-radius:8px; cursor:grab; user-select:none; }
+  .note.dragging { cursor:grabbing; opacity:0.9; z-index:100; box-shadow:0 10px 15px rgba(0,0,0,0.2); transform:scale(1.02); }
+  .note [contenteditable] { outline:none; min-height:40px; cursor:text; font-family:inherit; font-size:14px; }
+  .note .del-btn { position:absolute; top:-8px; right:-8px; background:#ef4444; color:#fff; border:none; border-radius:50%; width:24px; height:24px; cursor:pointer; display:none; align-items:center; justify-content:center; font-size:12px; font-weight:bold; }
+  .note:hover .del-btn { display:flex; }
+  .note .link-dot { position:absolute; bottom:-6px; left:calc(50% - 8px); width:16px; height:16px; background:#3b82f6; border-radius:50%; cursor:crosshair; border:2px solid #fff; box-shadow:0 0 4px rgba(0,0,0,0.3); transition:transform 0.1s;}
+  .note .link-dot:hover { transform:scale(1.3); }
 </style>
 </head>
 <body>
@@ -73,6 +82,7 @@
   <nav role="tablist">
     <button role="tab" data-tab="learn" aria-selected="true">📘 หลักการ STEAM</button>
     <button role="tab" data-tab="dt">💡 Design Thinking 6 ขั้น</button>
+    <button role="tab" data-tab="ideaboard">💡 กระดานไอเดีย</button>
     <button role="tab" data-tab="plan">📝 ออกแบบแผนการสอน</button>
     <button role="tab" data-tab="result">📊 ผลวิเคราะห์</button>
   </nav>
@@ -122,6 +132,23 @@
     <p class="muted">ขั้น 3–5 วนซ้ำได้หลายรอบจนได้ชิ้นงานที่ดีที่สุด แล้วจึงต่อยอดเป็นนวัตกรรม</p>
   </div>
   <div id="dtCards" class="grid" style="grid-template-columns:1fr"></div>
+</section>
+
+<!-- ============ กระดานไอเดีย ============ -->
+<section id="ideaboard" hidden>
+  <div class="card" style="display:flex; flex-direction:column; height: 80vh;">
+    <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
+      <h2 style="margin:0">💡 กระดานไอเดีย (Idea Board)</h2>
+      <div>
+        <button class="btn" id="addNoteBtn">➕ เพิ่มโพสต์อิท</button>
+        <button class="btn alt" id="clearBoardBtn">🗑️ ล้างกระดาน</button>
+      </div>
+    </div>
+    <p class="muted" style="margin-top:8px">ดับเบิลคลิกพื้นที่ว่างเพื่อสร้างโพสต์อิท, จับลากเพื่อย้ายตำแหน่ง, ลากจุดสีน้ำเงินใต้โพสต์อิทเพื่อวาดเส้นเชื่อมโยงความคิด</p>
+    <div id="board" style="flex:1; position:relative; background:url('data:image/svg+xml;utf8,<svg width=\'20\' height=\'20\' xmlns=\'http://www.w3.org/2000/svg\'><circle cx=\'2\' cy=\'2\' r=\'1\' fill=\'%23cbd5e1\'/></svg>') #f8fafc; border:1px solid #cbd5e1; border-radius:8px; overflow:hidden; touch-action:none; margin-top:8px;">
+      <svg id="boardLines" style="position:absolute; top:0; left:0; width:100%; height:100%; pointer-events:none;"></svg>
+    </div>
+  </div>
 </section>
 
 <!-- ============ ออกแบบแผน ============ -->
@@ -573,6 +600,104 @@ sel.onchange = (e) => {
     sel.value = ""; // reset
   }
 };
+/* ---- Idea Board Logic ---- */
+let nodesData = {};
+let linksData = [];
+const board = $("#board");
+const boardLines = $("#boardLines");
+let isDragging = null, isLinking = null, tempX = 0, tempY = 0;
+
+function saveBoard() { localStorage.setItem("steamBoard", JSON.stringify({nodes: nodesData, links: linksData})); }
+
+function createNote(x, y, text="", id=null) {
+  id = id || "n" + Date.now();
+  const el = document.createElement("div");
+  el.className = "note";
+  el.style.left = x + "px"; el.style.top = y + "px";
+  el.id = id;
+  el.innerHTML = `
+    <button class="del-btn" onclick="deleteNote('${id}')">✕</button>
+    <div contenteditable="true" oninput="nodesData['${id}'].text=this.innerText; saveBoard();" onpointerdown="event.stopPropagation()">${text}</div>
+    <div class="link-dot"></div>
+  `;
+  nodesData[id] = { id, x, y, text, el };
+  board.appendChild(el);
+  saveBoard();
+  
+  el.onpointerdown = (e) => {
+    if(e.target.className === "del-btn" || e.target.hasAttribute("contenteditable")) return;
+    if(e.target.className === "link-dot") { isLinking = id; e.stopPropagation(); board.setPointerCapture(e.pointerId); return; }
+    isDragging = id; el.classList.add("dragging"); board.setPointerCapture(e.pointerId);
+  };
+  return id;
+}
+
+window.deleteNote = (id) => {
+  if(!nodesData[id]) return;
+  nodesData[id].el.remove();
+  delete nodesData[id];
+  linksData = linksData.filter(l => l.f !== id && l.t !== id);
+  saveBoard(); drawLines();
+};
+
+function drawLines() {
+  let html = "";
+  linksData.forEach(l => {
+    const f = nodesData[l.f], t = nodesData[l.t];
+    if(f && t) html += `<path d="M ${f.x+75} ${f.y+40} L ${t.x+75} ${t.y+40}" stroke="#94a3b8" stroke-width="2" fill="none"/>`;
+  });
+  if (isLinking && nodesData[isLinking]) {
+    const f = nodesData[isLinking];
+    html += `<path d="M ${f.x+75} ${f.y+40} L ${tempX} ${tempY}" stroke="#3b82f6" stroke-width="2" stroke-dasharray="4" fill="none"/>`;
+  }
+  boardLines.innerHTML = html;
+}
+
+board.ondblclick = (e) => {
+  if (e.target === board || e.target.id === "boardLines") createNote(e.offsetX - 75, e.offsetY - 20);
+};
+
+board.onpointermove = (e) => {
+  const rect = board.getBoundingClientRect();
+  const mx = e.clientX - rect.left, my = e.clientY - rect.top;
+  if (isDragging) {
+    const n = nodesData[isDragging];
+    n.x = mx - 75; n.y = my - 10;
+    n.el.style.left = n.x + "px"; n.el.style.top = n.y + "px";
+    saveBoard(); drawLines();
+  } else if (isLinking) {
+    tempX = mx; tempY = my; drawLines();
+  }
+};
+
+board.onpointerup = (e) => {
+  if (isLinking) {
+    const targetEl = document.elementFromPoint(e.clientX, e.clientY)?.closest(".note");
+    if (targetEl && targetEl.id !== isLinking) {
+      linksData.push({ f: isLinking, t: targetEl.id }); saveBoard();
+    }
+  }
+  if (isDragging && nodesData[isDragging]) nodesData[isDragging].el.classList.remove("dragging");
+  isDragging = null; isLinking = null; drawLines();
+};
+
+$("#addNoteBtn").onclick = () => createNote(50, 50, "ไอเดียใหม่");
+$("#clearBoardBtn").onclick = () => {
+  if(confirm("ล้างกระดานไอเดียทั้งหมด?")){
+    board.querySelectorAll(".note").forEach(e=>e.remove());
+    nodesData={}; linksData=[]; saveBoard(); drawLines();
+  }
+};
+
+try {
+  const b = localStorage.getItem("steamBoard");
+  if (b) {
+    const data = JSON.parse(b);
+    linksData = data.links || [];
+    Object.values(data.nodes || {}).forEach(n => createNote(n.x, n.y, n.text, n.id));
+    drawLines();
+  }
+} catch(e) {}
 </script>
 </body>
 </html>

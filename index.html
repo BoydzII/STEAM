@@ -66,9 +66,9 @@
   }
   
   /* ---- Idea Board ---- */
-  .note { position:absolute; width:150px; background:#fef08a; border:1px solid #facc15; box-shadow:0 4px 6px rgba(0,0,0,0.1); padding:12px; border-radius:8px; cursor:grab; user-select:none; }
+  .note { position:absolute; width:150px; background:#fef08a; border:1px solid #facc15; box-shadow:0 4px 6px rgba(0,0,0,0.1); padding:12px; border-radius:8px; cursor:grab; user-select:none; display:flex; flex-direction:column; }
   .note.dragging { cursor:grabbing; opacity:0.9; z-index:100; box-shadow:0 10px 15px rgba(0,0,0,0.2); transform:scale(1.02); }
-  .note [contenteditable] { outline:none; min-height:40px; cursor:text; font-family:inherit; font-size:14px; }
+  .note [contenteditable] { outline:none; min-height:40px; cursor:text; font-family:inherit; font-size:14px; overflow-y:auto; word-break:break-word; flex:1; }
   .note .del-btn { position:absolute; top:-8px; right:-8px; background:#ef4444; color:#fff; border:none; border-radius:50%; width:24px; height:24px; cursor:pointer; display:none; align-items:center; justify-content:center; font-size:12px; font-weight:bold; }
   .note:hover .del-btn { display:flex; }
   .note .link-dot { position:absolute; bottom:-6px; left:calc(50% - 8px); width:16px; height:16px; background:#3b82f6; border-radius:50%; cursor:crosshair; border:2px solid #fff; box-shadow:0 0 4px rgba(0,0,0,0.3); transition:transform 0.1s;}
@@ -82,11 +82,13 @@
   .modal { position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); display:flex; align-items:center; justify-content:center; z-index:100; }
   .modal[hidden] { display:none !important; }
   .modal-content { background:#fff; padding:20px; border-radius:8px; width:90%; max-width:600px; box-shadow:0 10px 25px rgba(0,0,0,0.2); }
+  .resize-handle { position:absolute; bottom:0; right:0; width:16px; height:16px; cursor:nwse-resize; opacity:0.3; }
+  .resize-handle::after { content:""; position:absolute; right:4px; bottom:4px; width:6px; height:6px; border-right:2px solid #000; border-bottom:2px solid #000; }
 </style>
 </head>
 <body>
 <header style="position:relative">
-  <button class="btn alt" style="position:absolute; top:16px; right:16px; font-size:12px; padding:4px 8px;" onclick="window.location.href = window.location.pathname + '?v=' + new Date().getTime()">🔄 อัปเดตเวอร์ชัน (v.6)</button>
+  <button class="btn alt" style="position:absolute; top:16px; right:16px; font-size:12px; padding:4px 8px;" onclick="window.location.href = window.location.pathname + '?v=' + new Date().getTime()">🔄 อัปเดตเวอร์ชัน (v.7)</button>
   <h1>🎨 STEAM Active Learning Designer</h1>
   <p>เครื่องมือช่วยครูออกแบบแผนการสอนแบบ STEAM ด้วยกระบวนการ Design Thinking 6 ขั้น</p>
   <nav role="tablist">
@@ -667,7 +669,7 @@ let nodesData = {};
 let linksData = [];
 const board = $("#board");
 const boardLines = $("#boardLines");
-let isDragging = null, isLinking = null, tempX = 0, tempY = 0;
+let isDragging = null, isLinking = null, isResizing = null, tempX = 0, tempY = 0, startW = 0, startH = 0;
 let currentUser = localStorage.getItem("steamUser") || "";
 
 // Initialize gasUrl from localStorage if available
@@ -709,7 +711,7 @@ window.syncFromCloud = () => {
     .then(function(data) {
       board.querySelectorAll(".note").forEach(e=>e.remove());
       nodesData = {}; linksData = data.links || [];
-      Object.values(data.nodes || {}).forEach(n => createNote(n.x, n.y, n.text, n.id, n.color, n.owner));
+      Object.values(data.nodes || {}).forEach(n => createNote(n.x, n.y, n.text, n.id, n.color, n.owner, n.w, n.h));
       drawLines();
       saveBoard();
       alert("✅ โหลดข้อมูลจากคลาวด์สำเร็จ!");
@@ -737,7 +739,7 @@ window.branchNote = (parentId) => {
   saveBoard(); drawLines();
 };
 
-function createNote(x, y, text="", id=null, color="yellow", owner=null) {
+function createNote(x, y, text="", id=null, color="yellow", owner=null, w=150, h="auto") {
   const isNew = !id;
   if(isNew && !currentUser) {
     currentUser = prompt("คุณชื่ออะไร? (ใช้ระบุตัวตนความเป็นเจ้าของไอเดีย)") || "ไม่ระบุชื่อ";
@@ -749,6 +751,8 @@ function createNote(x, y, text="", id=null, color="yellow", owner=null) {
   const el = document.createElement("div");
   el.className = "note";
   el.style.left = x + "px"; el.style.top = y + "px";
+  el.style.width = typeof w === 'number' ? w + 'px' : w;
+  if(h && h !== "auto") el.style.height = typeof h === 'number' ? h + 'px' : h;
   el.id = id;
   
   const colorsHtml = Object.keys(NOTE_COLORS).map(k => 
@@ -762,8 +766,9 @@ function createNote(x, y, text="", id=null, color="yellow", owner=null) {
     <div contenteditable="true" oninput="nodesData['${id}'].text=this.innerText; saveBoard();" onmousedown="event.stopPropagation()" ontouchstart="event.stopPropagation()">${text}</div>
     <div class="owner">👤 ${owner}</div>
     <div class="link-dot"></div>
+    <div class="resize-handle"></div>
   `;
-  nodesData[id] = { id, x, y, text, el, color, owner };
+  nodesData[id] = { id, x, y, w, h, text, el, color, owner };
   board.appendChild(el);
   changeColor(id, color);
   saveBoard();
@@ -774,6 +779,13 @@ function createNote(x, y, text="", id=null, color="yellow", owner=null) {
       isLinking = id; e.stopPropagation(); 
       try { el.setPointerCapture(e.pointerId); } catch(err) {} 
       return; 
+    }
+    if(e.target.className === "resize-handle") {
+      isResizing = id; e.stopPropagation();
+      const evt = e.type.startsWith('touch') ? e.touches[0] : e;
+      tempX = evt.clientX; tempY = evt.clientY;
+      startW = el.offsetWidth; startH = el.offsetHeight;
+      return;
     }
     isDragging = id; el.classList.add("dragging"); 
     try { el.setPointerCapture(e.pointerId); } catch(err) {}
@@ -799,11 +811,19 @@ function drawLines() {
   let html = "";
   linksData.forEach(l => {
     const f = nodesData[l.f], t = nodesData[l.t];
-    if(f && t) html += `<path d="M ${f.x+75} ${f.y+40} L ${t.x+75} ${t.y+40}" stroke="#94a3b8" stroke-width="2" fill="none"/>`;
+    if(f && t) {
+      const fw = f.w && f.w !== 'auto' ? f.w/2 : 75;
+      const fh = f.h && f.h !== 'auto' ? f.h/2 : 40;
+      const tw = t.w && t.w !== 'auto' ? t.w/2 : 75;
+      const th = t.h && t.h !== 'auto' ? t.h/2 : 40;
+      html += `<path d="M ${f.x+fw} ${f.y+fh} L ${t.x+tw} ${t.y+th}" stroke="#94a3b8" stroke-width="2" fill="none"/>`;
+    }
   });
   if (isLinking && nodesData[isLinking]) {
     const f = nodesData[isLinking];
-    html += `<path d="M ${f.x+75} ${f.y+40} L ${tempX} ${tempY}" stroke="#3b82f6" stroke-width="2" stroke-dasharray="4" fill="none"/>`;
+    const fw = f.w && f.w !== 'auto' ? f.w/2 : 75;
+    const fh = f.h && f.h !== 'auto' ? f.h/2 : 40;
+    html += `<path d="M ${f.x+fw} ${f.y+fh} L ${tempX} ${tempY}" stroke="#3b82f6" stroke-width="2" stroke-dasharray="4" fill="none"/>`;
   }
   boardLines.innerHTML = html;
 }
@@ -813,13 +833,26 @@ board.ondblclick = (e) => {
 };
 
 const moveFn = (e) => {
-  if (!isDragging && !isLinking) return;
+  if (!isDragging && !isLinking && !isResizing) return;
+  e.preventDefault();
   const evt = e.type.startsWith('touch') ? e.touches[0] : e;
+  if (isResizing) {
+    const dx = evt.clientX - tempX;
+    const dy = evt.clientY - tempY;
+    const n = nodesData[isResizing];
+    n.w = Math.max(100, startW + dx);
+    n.h = Math.max(60, startH + dy);
+    n.el.style.width = n.w + "px";
+    n.el.style.height = n.h + "px";
+    saveBoard(); drawLines();
+    return;
+  }
   const rect = board.getBoundingClientRect();
   const mx = evt.clientX - rect.left, my = evt.clientY - rect.top;
   if (isDragging) {
     const n = nodesData[isDragging];
-    n.x = mx - 75; n.y = my - 10;
+    n.x = mx - (n.w ? (n.w !== 'auto' ? n.w/2 : 75) : 75); 
+    n.y = my - 10;
     n.el.style.left = n.x + "px"; n.el.style.top = n.y + "px";
     saveBoard(); drawLines();
   } else if (isLinking) {
@@ -830,9 +863,9 @@ window.addEventListener("mousemove", moveFn);
 window.addEventListener("touchmove", moveFn, {passive: false});
 
 const upFn = (e) => {
-  if (!isDragging && !isLinking) return;
+  if (!isDragging && !isLinking && !isResizing) return;
   const evt = e.type.startsWith('touch') ? e.changedTouches[0] : e;
-  const activeId = isDragging || isLinking;
+  const activeId = isDragging || isLinking || isResizing;
   if (activeId && nodesData[activeId]) {
     try { nodesData[activeId].el.releasePointerCapture(e.pointerId); } catch(err) {}
   }
@@ -845,7 +878,7 @@ const upFn = (e) => {
     }
   }
   if (isDragging && nodesData[isDragging]) nodesData[isDragging].el.classList.remove("dragging");
-  isDragging = null; isLinking = null; drawLines();
+  isDragging = null; isLinking = null; isResizing = null; drawLines();
 };
 window.addEventListener("mouseup", upFn);
 window.addEventListener("touchend", upFn);
@@ -863,7 +896,7 @@ try {
   if (b) {
     const data = JSON.parse(b);
     linksData = data.links || [];
-    Object.values(data.nodes || {}).forEach(n => createNote(n.x, n.y, n.text, n.id, n.color || "yellow", n.owner || ""));
+    Object.values(data.nodes || {}).forEach(n => createNote(n.x, n.y, n.text, n.id, n.color || "yellow", n.owner || "", n.w, n.h));
     drawLines();
   }
 } catch(e) {}

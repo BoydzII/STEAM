@@ -88,7 +88,7 @@
 </head>
 <body>
 <header style="position:relative">
-  <button class="btn alt" style="position:absolute; top:16px; right:16px; font-size:12px; padding:4px 8px;" onclick="window.location.href = window.location.pathname + '?v=' + new Date().getTime()">🔄 อัปเดตเวอร์ชัน (v.7)</button>
+  <button class="btn alt" style="position:absolute; top:16px; right:16px; font-size:12px; padding:4px 8px;" onclick="window.location.href = window.location.pathname + '?v=' + new Date().getTime()">🔄 อัปเดตเวอร์ชัน (v.8)</button>
   <h1>🎨 STEAM Active Learning Designer</h1>
   <p>เครื่องมือช่วยครูออกแบบแผนการสอนแบบ STEAM ด้วยกระบวนการ Design Thinking 6 ขั้น</p>
   <nav role="tablist">
@@ -684,13 +684,25 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 });
 
-function saveBoard() { localStorage.setItem("steamBoard", JSON.stringify({nodes: nodesData, links: linksData})); }
+function saveBoard() {
+  const cleanNodes = {};
+  for(let k in nodesData) {
+    const {el, ...rest} = nodesData[k];
+    cleanNodes[k] = rest;
+  }
+  localStorage.setItem("steamBoard", JSON.stringify({nodes: cleanNodes, links: linksData}));
+}
 
 window.syncToCloud = () => {
   const url = $("#gasUrl").value.trim();
   if(!url) return alert("กรุณาวางลิงก์ Google Sheets Web App ก่อนครับ");
   const btn = event.target; const oldText = btn.textContent; btn.textContent = "⏳ กำลังเซฟ...";
-  const payload = JSON.stringify({nodes: nodesData, links: linksData});
+  const cleanNodes = {};
+  for(let k in nodesData) {
+    const {el, ...rest} = nodesData[k];
+    cleanNodes[k] = rest;
+  }
+  const payload = JSON.stringify({nodes: cleanNodes, links: linksData});
   fetch(url, { method: "POST", body: payload, headers: {"Content-Type": "text/plain;charset=utf-8"} })
     .then(function() {
       alert("✅ บันทึกขึ้น Google Sheets สำเร็จ!");
@@ -756,13 +768,13 @@ function createNote(x, y, text="", id=null, color="yellow", owner=null, w=150, h
   el.id = id;
   
   const colorsHtml = Object.keys(NOTE_COLORS).map(k => 
-    `<div class="color-btn" style="background:${NOTE_COLORS[k].bg}" onmousedown="event.stopPropagation(); changeColor('${id}', '${k}')" ontouchstart="event.stopPropagation(); changeColor('${id}', '${k}')"></div>`
+    `<div class="color-btn" style="background:${NOTE_COLORS[k].bg}" onmousedown="event.stopPropagation(); changeColor('${id}', '${k}')" ontouchstart="event.stopPropagation(); event.preventDefault(); changeColor('${id}', '${k}')"></div>`
   ).join('');
 
   el.innerHTML = `
     <div class="tools">${colorsHtml}</div>
-    <button class="del-btn" onmousedown="event.stopPropagation(); deleteNote('${id}')" ontouchstart="event.stopPropagation(); deleteNote('${id}')">✕</button>
-    <button class="add-branch" onmousedown="event.stopPropagation(); branchNote('${id}')" ontouchstart="event.stopPropagation(); branchNote('${id}')" title="สร้างหัวข้อย่อยเชื่อมต่อทันที">➕</button>
+    <button class="del-btn" onmousedown="event.stopPropagation(); deleteNote('${id}')" ontouchstart="event.stopPropagation(); event.preventDefault(); deleteNote('${id}')">✕</button>
+    <button class="add-branch" onmousedown="event.stopPropagation(); branchNote('${id}')" ontouchstart="event.stopPropagation(); event.preventDefault(); branchNote('${id}')" title="สร้างหัวข้อย่อยเชื่อมต่อทันที">➕</button>
     <div contenteditable="true" oninput="nodesData['${id}'].text=this.innerText; saveBoard();" onmousedown="event.stopPropagation()" ontouchstart="event.stopPropagation()">${text}</div>
     <div class="owner">👤 ${owner}</div>
     <div class="link-dot"></div>
@@ -775,6 +787,7 @@ function createNote(x, y, text="", id=null, color="yellow", owner=null, w=150, h
   
   const downFn = (e) => {
     if(e.target.hasAttribute("contenteditable")) return;
+    if(e.target.tagName.toLowerCase() === 'button' || e.target.closest('.tools')) return;
     if(e.target.className === "link-dot") { 
       isLinking = id; e.stopPropagation(); 
       try { el.setPointerCapture(e.pointerId); } catch(err) {} 

@@ -86,17 +86,49 @@
   .resize-handle::after { content:""; position:absolute; right:4px; bottom:4px; width:6px; height:6px; border-right:2px solid #000; border-bottom:2px solid #000; }
   .card.board-full { position:fixed; top:0; left:0; right:0; bottom:0; z-index:99; height:auto !important; border-radius:0; margin:0; }
   body.board-full-open { overflow:hidden; }
+  /* ---- Online Room Board ---- */
+  .rb-cols{display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));margin-top:12px}
+  .rb-col{border-radius:12px;border:2px solid var(--line);background:#fff;display:flex;flex-direction:column;min-height:180px;min-width:0}
+  .rb-head{padding:10px 12px;border-radius:10px 10px 0 0;font-weight:700;display:flex;justify-content:space-between;align-items:center;gap:8px}
+  .rb-add{display:flex;gap:6px;padding:8px;align-items:flex-end}
+  .rb-add textarea{min-height:44px;flex:1;font-size:14px;padding:6px 8px}
+  .rb-list{padding:0 8px 8px}
+  .rb-card{border-radius:10px;padding:8px 10px;margin-top:8px;border:1px solid;word-break:break-word;font-size:14px}
+  .rb-card textarea{min-height:60px;font-size:14px;padding:6px 8px}
+  .rb-meta{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:4px;margin-top:6px;font-size:12px;color:#4b5563}
+  .rb-meta button{border:0;background:none;cursor:pointer;font:inherit;padding:2px 5px;border-radius:6px}
+  .rb-meta button:hover{background:rgba(0,0,0,.06)}
+  .rb-meta select{width:auto;padding:2px 4px;font-size:12px;border-radius:6px}
+  .rb-star{color:#a16207;font-weight:600}
+  .rb-star.on{color:#ca8a04;background:#fef3c7!important}
+  .rb-del.armed{background:#ef4444!important;color:#fff}
+  .rb-code{font-size:1.7rem;font-weight:800;letter-spacing:4px;font-family:ui-monospace,Consolas,monospace;color:var(--pri)}
+  .rb-topic-row{display:flex;gap:6px;margin:6px 0;align-items:center}
+  .rb-topic-row input{flex:1}
+  .rb-topic-row select{width:110px;flex:none}
+  .rb-sum-topic{border-left:6px solid;margin-top:12px}
+  .rb-sum-topic ol{padding-left:22px;margin:8px 0 0}
+  .rb-sum-topic li{margin:6px 0}
+  .rb-win{background:#fef9c3;border:1px solid #facc15;border-radius:10px;padding:8px 12px;margin-top:8px}
+  .rb-status{font-size:12px}
+  .rb-recent button{margin:4px 4px 0 0}
+  @media print{
+    body.print-room main>section#roomboard{display:block!important}
+    body.print-room main>section#result,body.print-room .rb-noprint,body.print-room #rbBoard,body.print-room #rbLobby{display:none!important}
+    body.print-room #rbSummary{display:block!important}
+  }
 </style>
 </head>
 <body>
 <header style="position:relative">
-  <button class="btn alt" style="position:absolute; top:16px; right:16px; font-size:12px; padding:4px 8px;" onclick="window.location.href = window.location.pathname + '?v=' + new Date().getTime()">🔄 อัปเดตเวอร์ชัน (v.11)</button>
+  <button class="btn alt" style="position:absolute; top:16px; right:16px; font-size:12px; padding:4px 8px;" onclick="window.location.href = window.location.pathname + '?v=' + new Date().getTime()">🔄 อัปเดตเวอร์ชัน (v.12)</button>
   <h1>🎨 STEAM Active Learning Designer</h1>
   <p>เครื่องมือช่วยครูออกแบบแผนการสอนแบบ STEAM ด้วยกระบวนการ Design Thinking 6 ขั้น</p>
   <nav role="tablist">
     <button role="tab" data-tab="learn" aria-selected="true">📘 หลักการ STEAM</button>
     <button role="tab" data-tab="dt">💡 Design Thinking 6 ขั้น</button>
     <button role="tab" data-tab="ideaboard">💡 กระดานไอเดีย</button>
+    <button role="tab" data-tab="roomboard">👥 กระดานออนไลน์</button>
     <button role="tab" data-tab="plan">📝 ออกแบบแผนการสอน</button>
     <button role="tab" data-tab="library">🌐 คลังแบ่งปันไอเดีย</button>
     <button role="tab" data-tab="result">📊 ผลวิเคราะห์</button>
@@ -173,6 +205,75 @@
         <svg id="boardLines" style="position:absolute; top:0; left:0; width:100%; height:100%; overflow:visible; pointer-events:none;"></svg>
       </div>
     </div>
+  </div>
+</section>
+
+<!-- ============ กระดานออนไลน์ (หลายคน) ============ -->
+<section id="roomboard" hidden>
+  <div class="card" id="rbSetup" hidden style="border-color:#f59e0b;background:#fffbeb">
+    <h2 style="margin-top:0">⚙️ ยังไม่ได้เชื่อมฐานข้อมูลกลาง</h2>
+    <p>ผู้ดูแลต้องติดตั้งสคริปต์ <b>gas/room-board.gs</b> ใน Google Sheets แล้วนำ URL เว็บแอป (ลงท้าย <code>/exec</code>) มาใส่ในค่า <code>ROOM_API</code> ในไฟล์ index.html ก่อน จึงจะตั้งกลุ่มและเข้ากลุ่มได้</p>
+  </div>
+  <div id="rbLobby">
+    <div class="card" style="margin-bottom:16px">
+      <h2 style="margin:0">👥 กระดานไอเดียออนไลน์</h2>
+      <p class="muted" style="margin:4px 0 0">คนหนึ่งตั้งกลุ่มแล้วได้รหัส 6 ตัว เพื่อน ๆ ใส่รหัสเข้ากลุ่ม ทุกคนเห็นไอเดียของกันและกัน กดดาวไอเดียที่ชอบ แล้วดูสรุปไอเดียที่ได้เลือกของแต่ละหัวข้อ</p>
+    </div>
+    <div class="grid">
+      <div class="card">
+        <h3>➕ ตั้งกลุ่มใหม่</h3>
+        <label for="rbNewName">ชื่อกระดาน / เรื่องที่ระดมไอเดีย</label>
+        <input type="text" id="rbNewName" maxlength="60" placeholder="เช่น ระดมไอเดียโครงงาน STEAM ม.2">
+        <label>หัวข้อ (สูงสุด 8 หัวข้อ เลือกสีของแต่ละหัวข้อได้)</label>
+        <div id="rbNewTopics"></div>
+        <button class="btn alt" type="button" onclick="rbAddTopicRow('rbNewTopics')" style="padding:6px 10px;font-size:12px">+ เพิ่มหัวข้อ</button>
+        <label for="rbNameCreate">ชื่อของคุณ</label>
+        <input type="text" id="rbNameCreate" maxlength="40" placeholder="เช่น ครูสมใจ">
+        <div class="actions"><button class="btn rb-need-api" id="rbCreateBtn" onclick="rbCreate()">สร้างกลุ่มและรับรหัส</button></div>
+      </div>
+      <div class="card">
+        <h3>🔑 เข้ากลุ่มด้วยรหัส</h3>
+        <label for="rbJoinCode">รหัสกลุ่ม 6 ตัว</label>
+        <input type="text" id="rbJoinCode" maxlength="6" autocomplete="off" autocapitalize="characters" placeholder="ABC123" style="text-transform:uppercase;letter-spacing:4px;font-size:1.3rem;font-family:ui-monospace,Consolas,monospace">
+        <label for="rbNameJoin">ชื่อของคุณ</label>
+        <input type="text" id="rbNameJoin" maxlength="40" placeholder="เช่น ครูสมชาย">
+        <div class="actions"><button class="btn rb-need-api" id="rbJoinBtn" onclick="rbJoin()">เข้ากลุ่ม</button></div>
+        <div id="rbRecent" class="rb-recent"></div>
+      </div>
+    </div>
+  </div>
+  <div id="rbRoom" hidden>
+    <div class="card rb-noprint">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:10px">
+        <div>
+          <h2 id="rbRoomName" style="margin:0"></h2>
+          <div class="muted" style="font-size:13px">รหัสกลุ่ม <span id="rbRoomCode" class="rb-code"></span>
+            <button class="btn alt" onclick="rbCopyLink()" style="padding:4px 8px;font-size:12px;margin-left:6px">🔗 คัดลอกลิงก์ชวนเพื่อน</button></div>
+          <div id="rbStatus" class="rb-status muted"></div>
+        </div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap">
+          <button class="btn" id="rbViewBoardBtn" onclick="rbSetView('board')" style="padding:6px 12px;font-size:13px">🗂️ กระดาน</button>
+          <button class="btn alt" id="rbViewSumBtn" onclick="rbSetView('summary')" style="padding:6px 12px;font-size:13px">🏆 สรุปไอเดีย</button>
+          <button class="btn alt" onclick="rbOpenTopicEdit()" style="padding:6px 12px;font-size:13px">⚙️ แก้หัวข้อ</button>
+          <button class="btn alt" onclick="rbLeave()" style="padding:6px 12px;font-size:13px">🚪 ออกจากกลุ่ม</button>
+        </div>
+      </div>
+      <div id="rbMe" class="muted" style="font-size:12px;margin-top:6px"></div>
+    </div>
+    <div id="rbTopicsEdit" class="card rb-noprint" hidden style="margin-top:12px">
+      <h3 style="margin-top:0">⚙️ แก้ชื่อกระดานและหัวข้อ</h3>
+      <label for="rbEditName">ชื่อกระดาน</label>
+      <input type="text" id="rbEditName" maxlength="60">
+      <label>หัวข้อ (ลบได้เฉพาะหัวข้อที่ยังไม่มีไอเดีย)</label>
+      <div id="rbEditTopics"></div>
+      <button class="btn alt" type="button" onclick="rbAddTopicRow('rbEditTopics')" style="padding:6px 10px;font-size:12px">+ เพิ่มหัวข้อ</button>
+      <div class="actions">
+        <button class="btn" onclick="rbSaveTopics()">บันทึกหัวข้อ</button>
+        <button class="btn alt" onclick="$('#rbTopicsEdit').hidden=true">ยกเลิก</button>
+      </div>
+    </div>
+    <div id="rbBoard" class="rb-cols"></div>
+    <div id="rbSummary" hidden></div>
   </div>
 </section>
 
@@ -1311,6 +1412,471 @@ window.insertCurriculum = () => {
   
   document.getElementById('curriculumModal').style.display = 'none';
 };
+/* ---- Online Room Board (กระดานไอเดียออนไลน์หลายคน) ---- */
+// URL เว็บแอป Apps Script (ลงท้าย /exec) จากการติดตั้ง gas/room-board.gs
+var ROOM_API = "";
+var RB_POLL_MS = 4000;
+var RB_COLORS = {
+  yellow: {bg:"#fef9c3", border:"#facc15", head:"#fde047", name:"เหลือง"},
+  blue:   {bg:"#dbeafe", border:"#60a5fa", head:"#93c5fd", name:"ฟ้า"},
+  green:  {bg:"#dcfce7", border:"#4ade80", head:"#86efac", name:"เขียว"},
+  pink:   {bg:"#fce7f3", border:"#f472b6", head:"#f9a8d4", name:"ชมพู"},
+  purple: {bg:"#f3e8ff", border:"#c084fc", head:"#d8b4fe", name:"ม่วง"},
+  orange: {bg:"#ffedd5", border:"#fb923c", head:"#fdba74", name:"ส้ม"}
+};
+var RB_COLOR_KEYS = Object.keys(RB_COLORS);
+var RB_DEFAULT_TOPICS = [
+  {name:"ปัญหาที่พบ", color:"pink"},
+  {name:"ไอเดียแก้ปัญหา", color:"yellow"},
+  {name:"กิจกรรม STEAM", color:"blue"}
+];
+var rbState = null, rbCode = "", rbName = "", rbView = "board";
+var rbPolling = false, rbWriting = 0, rbBoardSig = "", rbEditingId = null, rbLastOk = 0, rbFailCount = 0;
+
+function rbLsGet(k){ try { return localStorage.getItem(k); } catch(e){ return null; } }
+function rbLsSet(k, v){ try { if (v === null) localStorage.removeItem(k); else localStorage.setItem(k, v); } catch(e){} }
+var rbClientId = rbLsGet("steamClientId");
+if (!rbClientId || !/^[\w-]+$/.test(rbClientId)) {
+  rbClientId = "c" + new Date().getTime() + Math.random().toString(36).slice(2, 8);
+  rbLsSet("steamClientId", rbClientId);
+}
+
+function rbText(s){ return String(s == null ? "" : s).replace(/[&<>"']/g, function(c){ return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]; }); }
+function rbHtml(s){ return rbText(s).replace(/\n/g, "<br>"); }
+function rbId(s){ return String(s || "").replace(/[^\w-]/g, ""); }
+function rbColor(k){ return RB_COLORS[k] || RB_COLORS.yellow; }
+
+function rbRequest(method, data, cb){
+  if (!ROOM_API) { cb("ยังไม่ได้ตั้งค่า ROOM_API"); return; }
+  var xhr = new XMLHttpRequest();
+  if (method === "GET") {
+    var qs = Object.keys(data).map(function(k){ return encodeURIComponent(k) + "=" + encodeURIComponent(data[k]); }).join("&");
+    xhr.open("GET", ROOM_API + "?" + qs + "&_=" + new Date().getTime());
+  } else {
+    xhr.open("POST", ROOM_API);
+    xhr.setRequestHeader("Content-Type", "text/plain;charset=utf-8");
+  }
+  xhr.timeout = 20000;
+  xhr.onload = function(){
+    var res;
+    try { res = JSON.parse(xhr.responseText); } catch(e) { cb("เซิร์ฟเวอร์ตอบกลับผิดรูปแบบ"); return; }
+    if (!res || !res.ok) { cb((res && res.error) || "เกิดข้อผิดพลาด"); return; }
+    cb(null, res);
+  };
+  xhr.onerror = function(){ cb("เชื่อมต่อไม่ได้ ตรวจสอบอินเทอร์เน็ต"); };
+  xhr.ontimeout = function(){ cb("เซิร์ฟเวอร์ตอบช้าเกินไป"); };
+  xhr.send(method === "GET" ? null : JSON.stringify(data));
+}
+
+/* ---- topic editor (ใช้ทั้งตอนตั้งกลุ่มและแก้หัวข้อ) ---- */
+function rbTopicRowHtml(t){
+  var opts = RB_COLOR_KEYS.map(function(k){ return '<option value="' + k + '"' + (k === t.color ? " selected" : "") + '>' + RB_COLORS[k].name + '</option>'; }).join("");
+  var c = rbColor(t.color);
+  return '<div class="rb-topic-row" data-id="' + rbId(t.id) + '">'
+    + '<input type="text" maxlength="40" value="' + rbText(t.name) + '" placeholder="ชื่อหัวข้อ">'
+    + '<select style="background:' + c.head + '">' + opts + '</select>'
+    + '<button type="button" class="btn alt" data-rb-remove style="padding:6px 10px;font-size:12px" title="ลบหัวข้อ">✕</button></div>';
+}
+function rbFillTopicEditor(boxId, topics){
+  $("#" + boxId).innerHTML = topics.map(rbTopicRowHtml).join("");
+}
+window.rbAddTopicRow = function(boxId){
+  var box = $("#" + boxId);
+  var n = box.querySelectorAll(".rb-topic-row").length;
+  if (n >= 8) { alert("ตั้งได้สูงสุด 8 หัวข้อ"); return; }
+  var used = {}, sels = box.querySelectorAll("select");
+  for (var i = 0; i < sels.length; i++) used[sels[i].value] = 1;
+  var color = RB_COLOR_KEYS.filter(function(k){ return !used[k]; })[0] || RB_COLOR_KEYS[n % RB_COLOR_KEYS.length];
+  box.insertAdjacentHTML("beforeend", rbTopicRowHtml({id:"", name:"", color: color}));
+  var inputs = box.querySelectorAll("input");
+  inputs[inputs.length - 1].focus();
+};
+function rbReadTopics(boxId){
+  var out = [];
+  var rows = $("#" + boxId).querySelectorAll(".rb-topic-row");
+  for (var i = 0; i < rows.length; i++) {
+    var name = rows[i].querySelector("input").value.trim();
+    if (!name) continue;
+    out.push({id: rows[i].getAttribute("data-id") || ("t" + new Date().getTime() + i), name: name, color: rows[i].querySelector("select").value});
+  }
+  return out;
+}
+["rbNewTopics", "rbEditTopics"].forEach(function(boxId){
+  var box = $("#" + boxId);
+  box.addEventListener("click", function(e){
+    if (e.target.hasAttribute("data-rb-remove")) {
+      var row = e.target.parentNode;
+      if (box.querySelectorAll(".rb-topic-row").length <= 1) { alert("ต้องมีอย่างน้อย 1 หัวข้อ"); return; }
+      row.parentNode.removeChild(row);
+    }
+  });
+  box.addEventListener("change", function(e){
+    if (e.target.tagName === "SELECT") e.target.style.background = rbColor(e.target.value).head;
+  });
+});
+
+/* ---- lobby ---- */
+function rbRememberRoom(state){
+  var list = [];
+  try { list = JSON.parse(rbLsGet("steamRooms") || "[]"); } catch(e) {}
+  if (!(list instanceof Array)) list = [];
+  list = list.filter(function(r){ return r && r.code !== state.code; });
+  list.unshift({code: state.code, name: state.name});
+  rbLsSet("steamRooms", JSON.stringify(list.slice(0, 5)));
+}
+function rbRenderRecent(){
+  var list = [];
+  try { list = JSON.parse(rbLsGet("steamRooms") || "[]"); } catch(e) {}
+  if (!(list instanceof Array) || !list.length) { $("#rbRecent").innerHTML = ""; return; }
+  $("#rbRecent").innerHTML = '<p class="muted" style="margin:14px 0 0;font-size:13px">กลุ่มที่เคยเข้า</p>'
+    + list.map(function(r){ var code = rbId(r.code).toUpperCase(); return '<button class="btn alt" data-rb-recent="' + code + '" style="padding:4px 10px;font-size:12px">' + rbText(r.name) + ' · ' + code + '</button>'; }).join("");
+}
+$("#rbRecent").addEventListener("click", function(e){
+  var code = e.target.getAttribute("data-rb-recent");
+  if (code) { $("#rbJoinCode").value = code; rbJoin(); }
+});
+
+function rbSetName(name){
+  rbName = name;
+  rbLsSet("steamRoomName", name);
+}
+window.rbCreate = function(){
+  var name = $("#rbNameCreate").value.trim();
+  var title = $("#rbNewName").value.trim();
+  var topics = rbReadTopics("rbNewTopics");
+  if (!title) { alert("กรุณาใส่ชื่อกระดาน"); $("#rbNewName").focus(); return; }
+  if (!topics.length) { alert("กรุณาตั้งอย่างน้อย 1 หัวข้อ"); return; }
+  if (!name) { alert("กรุณาใส่ชื่อของคุณ"); $("#rbNameCreate").focus(); return; }
+  var btn = $("#rbCreateBtn"); btn.disabled = true; btn.textContent = "⏳ กำลังสร้าง...";
+  rbRequest("POST", {action:"create_room", name:title, topics:topics, author:name}, function(err, res){
+    btn.disabled = false; btn.textContent = "สร้างกลุ่มและรับรหัส";
+    if (err) { alert("สร้างกลุ่มไม่สำเร็จ: " + err); return; }
+    rbSetName(name);
+    rbEnterRoom(res.state);
+  });
+};
+window.rbJoin = function(silent){
+  var code = $("#rbJoinCode").value.toUpperCase().replace(/[^A-Z0-9]/g, "");
+  var name = $("#rbNameJoin").value.trim();
+  if (code.length !== 6) { if (!silent) { alert("รหัสกลุ่มต้องมี 6 ตัว"); $("#rbJoinCode").focus(); } return; }
+  if (!name) { if (!silent) { alert("กรุณาใส่ชื่อของคุณ"); $("#rbNameJoin").focus(); } return; }
+  var btn = $("#rbJoinBtn"); btn.disabled = true; btn.textContent = "⏳ กำลังเข้ากลุ่ม...";
+  rbRequest("GET", {action:"room_get", code:code}, function(err, res){
+    btn.disabled = false; btn.textContent = "เข้ากลุ่ม";
+    if (err) { if (!silent) alert("เข้ากลุ่มไม่สำเร็จ: " + err); else rbLsSet("steamRoomCode", null); return; }
+    rbSetName(name);
+    rbEnterRoom(res.state);
+  });
+};
+window.rbLeave = function(){
+  rbCode = ""; rbState = null; rbBoardSig = ""; rbEditingId = null;
+  rbLsSet("steamRoomCode", null);
+  $("#rbRoom").hidden = true; $("#rbLobby").hidden = false;
+  if (history.replaceState) { try { history.replaceState(null, "", location.pathname); } catch(e) {} }
+  rbRenderRecent();
+};
+function rbEnterRoom(state){
+  rbCode = state.code;
+  rbLsSet("steamRoomCode", rbCode);
+  rbRememberRoom(state);
+  rbBoardSig = ""; rbEditingId = null; rbFailCount = 0; rbLastOk = new Date().getTime();
+  $("#rbLobby").hidden = true; $("#rbRoom").hidden = false; $("#rbTopicsEdit").hidden = true;
+  $("#rbMe").textContent = "คุณใช้ชื่อ: " + rbName;
+  rbSetView("board");
+  rbApply(state);
+  if (history.replaceState) { try { history.replaceState(null, "", location.pathname + "?room=" + rbCode); } catch(e) {} }
+}
+window.rbCopyLink = function(){
+  var link = location.origin + location.pathname + "?room=" + rbCode;
+  rbCopy(link, "คัดลอกลิงก์แล้ว ส่งให้เพื่อนเพื่อเข้ากลุ่มได้เลย\n" + link);
+};
+function rbCopy(text, okMsg){
+  function fallback(){
+    var ta = document.createElement("textarea");
+    ta.value = text; ta.style.position = "fixed"; ta.style.top = "-1000px";
+    document.body.appendChild(ta); ta.select();
+    try { ta.setSelectionRange(0, text.length); } catch(e) {}
+    var ok = false;
+    try { ok = document.execCommand("copy"); } catch(e) {}
+    document.body.removeChild(ta);
+    alert(ok ? okMsg : "คัดลอกอัตโนมัติไม่ได้ กรุณาคัดลอกเอง:\n" + text);
+  }
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(text).then(function(){ alert(okMsg); }, fallback);
+  } else fallback();
+}
+
+/* ---- sync ---- */
+function rbSetStatus(){
+  var el = $("#rbStatus");
+  if (rbWriting) { el.textContent = "⏳ กำลังบันทึก..."; return; }
+  if (rbFailCount >= 2) { el.textContent = "🔴 เชื่อมต่อไม่ได้ กำลังลองใหม่อัตโนมัติ..."; return; }
+  if (!rbLastOk) { el.textContent = ""; return; }
+  var d = new Date(rbLastOk);
+  var pad = function(n){ return (n < 10 ? "0" : "") + n; };
+  el.textContent = "🟢 ออนไลน์ · อัปเดตอัตโนมัติทุก " + (RB_POLL_MS / 1000) + " วินาที · ล่าสุด " + pad(d.getHours()) + ":" + pad(d.getMinutes()) + ":" + pad(d.getSeconds());
+}
+function rbPoll(force){
+  if (!rbCode || rbPolling || rbWriting) return;
+  if (!force && (document.hidden || $("#roomboard").hidden)) return;
+  rbPolling = true;
+  var code = rbCode;
+  rbRequest("GET", {action:"room_get", code:code, rev: rbState ? rbState.rev : ""}, function(err, res){
+    rbPolling = false;
+    if (code !== rbCode) return;
+    if (err) { rbFailCount++; rbSetStatus(); return; }
+    rbFailCount = 0; rbLastOk = new Date().getTime();
+    if (res.state && !rbWriting) rbApply(res.state); else rbSetStatus();
+  });
+}
+setInterval(rbPoll, RB_POLL_MS);
+document.addEventListener("visibilitychange", function(){ if (!document.hidden) rbPoll(); });
+
+function rbWrite(payload, onDone){
+  payload.code = rbCode;
+  rbWriting++; rbSetStatus();
+  var code = rbCode;
+  rbRequest("POST", payload, function(err, res){
+    rbWriting--;
+    if (code !== rbCode) return;
+    if (err) { rbSetStatus(); alert("บันทึกไม่สำเร็จ: " + err); rbPoll(true); if (onDone) onDone(err); return; }
+    rbFailCount = 0; rbLastOk = new Date().getTime();
+    rbApply(res.state);
+    if (onDone) onDone(null);
+  });
+}
+
+/* ---- render ---- */
+function rbApply(state){
+  if (!state || state.code !== rbCode) return;
+  rbState = state;
+  $("#rbRoomName").textContent = state.name;
+  $("#rbRoomCode").textContent = state.code;
+  rbRememberRoom(state);
+  rbSetStatus();
+  if (rbView === "summary") rbRenderSummary();
+  else if (!rbEditingId) rbRenderBoard();
+}
+function rbIdeasOf(topicId){
+  return rbState.ideas.filter(function(i){ return i.topicId === topicId; });
+}
+function rbStarCount(i){ return (i.stars || []).length; }
+function rbStarredByMe(i){ return (i.stars || []).indexOf(rbClientId) >= 0; }
+
+function rbRenderBoard(){
+  var s = rbState, box = $("#rbBoard");
+  var sig = s.topics.map(function(t){ return t.id + ":" + t.name + ":" + t.color; }).join("|");
+  if (sig !== rbBoardSig) {
+    var drafts = {};
+    var tas = box.querySelectorAll("textarea[data-draft]");
+    for (var i = 0; i < tas.length; i++) drafts[tas[i].getAttribute("data-draft")] = tas[i].value;
+    rbBoardSig = sig;
+    box.innerHTML = s.topics.map(function(t){
+      var c = rbColor(t.color), id = rbId(t.id);
+      return '<div class="rb-col" style="border-color:' + c.border + '" data-col="' + id + '">'
+        + '<div class="rb-head" style="background:' + c.head + '"><span>' + rbText(t.name) + '</span><span class="rb-count" style="font-weight:400;font-size:12px"></span></div>'
+        + '<div class="rb-add"><textarea maxlength="500" rows="2" placeholder="พิมพ์ไอเดียแล้วกดส่ง..." data-draft="' + id + '"></textarea>'
+        + '<button class="btn" data-act="add" data-topic="' + id + '" style="padding:8px 12px">ส่ง</button></div>'
+        + '<div class="rb-list"></div></div>';
+    }).join("");
+    Object.keys(drafts).forEach(function(k){ var ta = box.querySelector('textarea[data-draft="' + k + '"]'); if (ta) ta.value = drafts[k]; });
+  }
+  s.topics.forEach(function(t){
+    var col = box.querySelector('[data-col="' + rbId(t.id) + '"]');
+    if (!col) return;
+    var ideas = rbIdeasOf(t.id).sort(function(a, b){ return b.createdAt - a.createdAt; });
+    col.querySelector(".rb-count").textContent = ideas.length + " ไอเดีย";
+    col.querySelector(".rb-list").innerHTML = ideas.length ? ideas.map(function(i){ return rbCardHtml(i, t); }).join("")
+      : '<p class="muted" style="font-size:13px;margin:8px 4px">ยังไม่มีไอเดีย เป็นคนแรกเลย!</p>';
+  });
+}
+function rbCardHtml(i, t){
+  var c = rbColor(t.color), id = rbId(i.id);
+  if (rbEditingId === i.id) {
+    return '<div class="rb-card" style="background:' + c.bg + ';border-color:' + c.border + '">'
+      + '<textarea maxlength="500" data-edit="' + id + '">' + rbText(i.text) + '</textarea>'
+      + '<div class="rb-meta"><span></span><span><button data-act="save" data-id="' + id + '">💾 บันทึก</button><button data-act="cancel">ยกเลิก</button></span></div></div>';
+  }
+  var mine = rbStarredByMe(i), n = rbStarCount(i);
+  var moveOpts = rbState.topics.length > 1 ? '<select data-act="move" data-id="' + id + '" title="ย้ายไปหัวข้ออื่น"><option value="">↪ ย้าย</option>'
+    + rbState.topics.filter(function(x){ return x.id !== t.id; }).map(function(x){ return '<option value="' + rbId(x.id) + '">' + rbText(x.name) + '</option>'; }).join("") + '</select>' : "";
+  return '<div class="rb-card" style="background:' + c.bg + ';border-color:' + c.border + '">'
+    + '<div>' + rbHtml(i.text) + '</div>'
+    + '<div class="rb-meta"><span>👤 ' + rbText(i.author) + '</span><span>'
+    + '<button class="rb-star' + (mine ? ' on' : '') + '" data-act="star" data-id="' + id + '" title="' + (mine ? "ถอนดาว" : "ให้ดาว") + '">' + (mine ? "★" : "☆") + ' ' + n + '</button>'
+    + '<button data-act="edit" data-id="' + id + '" title="แก้ไข">✏️</button>' + moveOpts
+    + '<button class="rb-del" data-act="del" data-id="' + id + '" title="ลบ">🗑️</button>'
+    + '</span></div></div>';
+}
+function rbFindIdea(id){
+  for (var i = 0; i < rbState.ideas.length; i++) if (rbState.ideas[i].id === id) return rbState.ideas[i];
+  return null;
+}
+
+$("#rbBoard").addEventListener("click", function(e){
+  var btn = e.target.closest ? e.target.closest("[data-act]") : e.target;
+  if (!btn || btn.tagName === "SELECT" || !rbState) return;
+  var act = btn.getAttribute("data-act"), id = btn.getAttribute("data-id");
+  if (act === "add") {
+    var topicId = btn.getAttribute("data-topic");
+    var ta = $("#rbBoard").querySelector('textarea[data-draft="' + topicId + '"]');
+    var text = ta.value.trim();
+    if (!text) { ta.focus(); return; }
+    btn.disabled = true;
+    rbWrite({action:"add_idea", topicId:topicId, text:text, author:rbName}, function(err){
+      btn.disabled = false;
+      if (!err) { var t2 = $("#rbBoard").querySelector('textarea[data-draft="' + topicId + '"]'); if (t2) t2.value = ""; }
+    });
+  } else if (act === "star") {
+    var idea = rbFindIdea(id);
+    if (!idea) return;
+    var at = idea.stars.indexOf(rbClientId);
+    if (at >= 0) idea.stars.splice(at, 1); else idea.stars.push(rbClientId);
+    rbRenderBoard();
+    rbWrite({action:"star", id:id, clientId:rbClientId});
+  } else if (act === "edit") {
+    rbEditingId = id; rbRenderBoard();
+    var et = $("#rbBoard").querySelector('textarea[data-edit="' + id + '"]');
+    if (et) et.focus();
+  } else if (act === "cancel") {
+    rbEditingId = null; rbRenderBoard();
+  } else if (act === "save") {
+    var et2 = $("#rbBoard").querySelector('textarea[data-edit="' + id + '"]');
+    var nt = et2 ? et2.value.trim() : "";
+    if (!nt) { alert("ไอเดียว่างไม่ได้"); return; }
+    btn.disabled = true;
+    rbWrite({action:"edit_idea", id:id, text:nt}, function(err){
+      if (!err) { rbEditingId = null; rbRenderBoard(); } else btn.disabled = false;
+    });
+  } else if (act === "del") {
+    // กดครั้งแรกเพื่อเตรียม กดซ้ำภายใน 3 วินาทีเพื่อลบ (ไม่ใช้ confirm เพราะบาง WebView บล็อก)
+    if (!btn.classList.contains("armed")) {
+      btn.classList.add("armed"); btn.textContent = "ยืนยันลบ?";
+      setTimeout(function(){ if (btn.parentNode) { btn.classList.remove("armed"); btn.textContent = "🗑️"; } }, 3000);
+      return;
+    }
+    rbWrite({action:"del_idea", id:id});
+  }
+});
+$("#rbBoard").addEventListener("change", function(e){
+  var el = e.target;
+  if (el.getAttribute("data-act") !== "move" || !el.value) return;
+  rbWrite({action:"edit_idea", id:el.getAttribute("data-id"), topicId:el.value});
+});
+$("#rbBoard").addEventListener("keydown", function(e){
+  // Ctrl/⌘ + Enter = ส่ง
+  if ((e.ctrlKey || e.metaKey) && (e.key === "Enter" || e.keyCode === 13)) {
+    var topicId = e.target.getAttribute("data-draft");
+    var editId = e.target.getAttribute("data-edit");
+    var sel = topicId ? '[data-act="add"][data-topic="' + topicId + '"]' : editId ? '[data-act="save"][data-id="' + editId + '"]' : "";
+    var b = sel && $("#rbBoard").querySelector(sel);
+    if (b) { e.preventDefault(); b.click(); }
+  }
+});
+
+window.rbSetView = function(v){
+  rbView = v;
+  $("#rbBoard").hidden = v !== "board";
+  $("#rbSummary").hidden = v !== "summary";
+  $("#rbViewBoardBtn").className = v === "board" ? "btn" : "btn alt";
+  $("#rbViewSumBtn").className = v === "summary" ? "btn" : "btn alt";
+  if (rbState) { if (v === "summary") rbRenderSummary(); else { rbBoardSig = ""; rbRenderBoard(); } }
+};
+
+function rbRanked(topicId){
+  var list = rbIdeasOf(topicId).slice().sort(function(a, b){ return rbStarCount(b) - rbStarCount(a) || a.createdAt - b.createdAt; });
+  var rank = 0, prev = -1;
+  list.forEach(function(i, k){ var n = rbStarCount(i); if (n !== prev) { rank = k + 1; prev = n; } i._rank = rank; });
+  return list;
+}
+function rbRenderSummary(){
+  var s = rbState;
+  var authors = {}, stars = 0;
+  s.ideas.forEach(function(i){ authors[i.author] = 1; stars += rbStarCount(i); });
+  var d = new Date();
+  var html = '<div class="card" style="margin-top:12px">'
+    + '<div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:8px">'
+    + '<div><h2 style="margin:0">🏆 สรุปไอเดีย: ' + rbText(s.name) + '</h2>'
+    + '<p class="muted" style="margin:4px 0 0">รหัสกลุ่ม ' + rbText(s.code) + ' · ผู้ร่วมเสนอ ' + Object.keys(authors).length + ' คน · ไอเดีย ' + s.ideas.length + ' รายการ · ดาวรวม ' + stars + ' ดวง · ณ ' + d.toLocaleString("th-TH") + '</p></div>'
+    + '<div class="rb-noprint" style="display:flex;gap:6px;flex-wrap:wrap"><button class="btn alt" onclick="rbPrintSummary()" style="padding:6px 12px;font-size:13px">🖨️ พิมพ์สรุป</button>'
+    + '<button class="btn alt" onclick="rbCopySummary()" style="padding:6px 12px;font-size:13px">📋 คัดลอกเป็นข้อความ</button></div></div></div>';
+  s.topics.forEach(function(t){
+    var c = rbColor(t.color);
+    var list = rbRanked(t.id);
+    var winners = list.filter(function(i){ return i._rank === 1 && rbStarCount(i) > 0; });
+    html += '<div class="card rb-sum-topic" style="border-left-color:' + c.border + '">'
+      + '<h3 style="margin:0"><span style="display:inline-block;width:12px;height:12px;border-radius:50%;background:' + c.border + ';margin-right:6px"></span>' + rbText(t.name)
+      + ' <span class="muted" style="font-weight:400;font-size:13px">(' + list.length + ' ไอเดีย)</span></h3>';
+    if (!list.length) html += '<p class="muted">ยังไม่มีไอเดียในหัวข้อนี้</p>';
+    else {
+      if (winners.length) {
+        html += '<div class="rb-win">🏆 <b>ไอเดียที่ได้เลือก' + (winners.length > 1 ? " (คะแนนเท่ากัน " + winners.length + " ไอเดีย)" : "") + '</b>'
+          + winners.map(function(i){ return '<div style="margin-top:4px">' + rbHtml(i.text) + ' <span class="muted" style="font-size:12px">— ' + rbText(i.author) + ' · ★ ' + rbStarCount(i) + '</span></div>'; }).join("") + '</div>';
+      } else html += '<p class="muted" style="margin:8px 0 0">ยังไม่มีใครให้ดาวในหัวข้อนี้</p>';
+      html += '<ol>' + list.map(function(i){
+        return '<li><b>★ ' + rbStarCount(i) + '</b> ' + rbHtml(i.text) + ' <span class="muted" style="font-size:12px">— ' + rbText(i.author) + '</span></li>';
+      }).join("") + '</ol>';
+    }
+    html += '</div>';
+  });
+  $("#rbSummary").innerHTML = html;
+}
+window.rbPrintSummary = function(){
+  document.body.classList.add("print-room");
+  window.print();
+  setTimeout(function(){ document.body.classList.remove("print-room"); }, 1000);
+};
+window.rbCopySummary = function(){
+  var s = rbState, lines = ["สรุปไอเดีย: " + s.name + " (รหัส " + s.code + ")", ""];
+  s.topics.forEach(function(t){
+    lines.push("■ " + t.name);
+    var list = rbRanked(t.id);
+    if (!list.length) lines.push("  (ยังไม่มีไอเดีย)");
+    list.forEach(function(i, k){
+      lines.push("  " + (k + 1) + ". " + (i._rank === 1 && rbStarCount(i) > 0 ? "🏆 " : "") + i.text.replace(/\n/g, " ") + " — " + i.author + " (★" + rbStarCount(i) + ")");
+    });
+    lines.push("");
+  });
+  rbCopy(lines.join("\n"), "คัดลอกสรุปแล้ว วางในไลน์หรือเอกสารได้เลย");
+};
+
+window.rbOpenTopicEdit = function(){
+  if (!rbState) return;
+  $("#rbEditName").value = rbState.name;
+  rbFillTopicEditor("rbEditTopics", rbState.topics);
+  $("#rbTopicsEdit").hidden = false;
+  $("#rbEditName").focus();
+};
+window.rbSaveTopics = function(){
+  var topics = rbReadTopics("rbEditTopics");
+  if (!topics.length) { alert("ต้องมีอย่างน้อย 1 หัวข้อ"); return; }
+  rbWrite({action:"edit_topics", name: $("#rbEditName").value.trim(), topics: topics}, function(err){
+    if (!err) $("#rbTopicsEdit").hidden = true;
+  });
+};
+
+/* ---- start ---- */
+(function(){
+  rbFillTopicEditor("rbNewTopics", RB_DEFAULT_TOPICS);
+  var savedName = rbLsGet("steamRoomName") || "";
+  rbName = savedName;
+  $("#rbNameCreate").value = savedName;
+  $("#rbNameJoin").value = savedName;
+  if (!ROOM_API) {
+    $("#rbSetup").hidden = false;
+    var need = document.querySelectorAll(".rb-need-api");
+    for (var i = 0; i < need.length; i++) need[i].disabled = true;
+  }
+  rbRenderRecent();
+  var m = /[?&]room=([A-Za-z0-9]{6})/.exec(location.search);
+  var code = m ? m[1].toUpperCase() : (rbLsGet("steamRoomCode") || "");
+  if (code) {
+    $("#rbJoinCode").value = code;
+    if (m) showTab("roomboard");
+    if (savedName && ROOM_API) rbJoin(true);
+  }
+  document.querySelector('[data-tab="roomboard"]').addEventListener("click", function(){ rbPoll(true); });
+})();
 </script>
 <!-- ============ Curriculum Modal ============ -->
 <div id="curriculumModal" class="modal" style="display:none;">

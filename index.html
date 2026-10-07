@@ -155,7 +155,7 @@
     <div style="display:flex; justify-content:space-between; align-items:flex-end; flex-wrap:wrap; gap:8px;">
       <div>
         <h2 style="margin:0">💡 กระดานไอเดีย (Idea Board)</h2>
-        <p class="muted" style="margin:4px 0 0 0">ดับเบิลคลิกสร้างโพสต์อิท, ลากเพื่อย้าย, ลากจุดสีน้ำเงินเพื่อวาดเส้นเชื่อมโยง, ลากพื้นว่างเพื่อเลื่อนกระดาน, หมุนล้อเมาส์หรือหนีบ 2 นิ้วเพื่อซูม</p>
+        <p class="muted" style="margin:4px 0 0 0">ดับเบิลคลิกสร้างโพสต์อิท, ลากเพื่อย้าย, ลากจุดสีน้ำเงินเพื่อวาดเส้นเชื่อมโยง, ลากพื้นว่างเพื่อเลื่อนกระดาน, Ctrl + ล้อเมาส์ เพื่อซูม (โหมดเต็มจอหมุนล้อได้เลย) หรือหนีบ 2 นิ้วเพื่อซูม</p>
       </div>
       <div style="display:flex; gap:6px; align-items:center; flex-wrap:wrap;">
 
@@ -683,8 +683,8 @@ let zoom = 1, panX = 0, panY = 0, isPanning = null, isPinching = null;
 
 function clampZoom(z) { return Math.max(0.25, Math.min(3, z)); }
 function toWorld(clientX, clientY) {
-  const rect = board.getBoundingClientRect();
-  return { x: (clientX - rect.left - panX) / zoom, y: (clientY - rect.top - panY) / zoom };
+  const rect = board.getBoundingClientRect(); // + clientLeft/Top = ข้ามเส้นขอบ 1px ของ #board
+  return { x: (clientX - rect.left - board.clientLeft - panX) / zoom, y: (clientY - rect.top - board.clientTop - panY) / zoom };
 }
 function applyView() {
   const t = "translate(" + panX + "px," + panY + "px) scale(" + zoom + ")";
@@ -696,7 +696,7 @@ function zoomAt(z, clientX, clientY) {
   const rect = board.getBoundingClientRect();
   const p = toWorld(clientX, clientY);
   zoom = clampZoom(z);
-  panX = clientX - rect.left - p.x * zoom; panY = clientY - rect.top - p.y * zoom;
+  panX = clientX - rect.left - board.clientLeft - p.x * zoom; panY = clientY - rect.top - board.clientTop - p.y * zoom;
   applyView();
 }
 try {
@@ -728,14 +728,21 @@ window.fitBoard = () => {
   applyView();
 };
 
+let boardFullScrollY = 0;
 window.toggleBoardFull = () => {
   const card = board.parentNode;
   const on = !card.classList.contains("board-full");
+  if (on) boardFullScrollY = window.pageYOffset || 0;
   card.classList[on ? "add" : "remove"]("board-full");
   document.body.classList[on ? "add" : "remove"]("board-full-open");
   $("#boardFullBtn").textContent = on ? "✕ ออกจากเต็มจอ" : "⛶ เต็มจอ";
   drawLines();
+  if (!on) window.scrollTo(0, boardFullScrollY); // คืนตำแหน่งเลื่อนหน้าเว็บเดิม
 };
+// #board เป็น overflow:hidden แต่ focus() ยังเลื่อนภายในได้ ทำให้ toWorld คลาด — บังคับกลับ 0 เสมอ
+board.addEventListener("scroll", () => {
+  if (board.scrollTop || board.scrollLeft) { board.scrollTop = 0; board.scrollLeft = 0; }
+});
 document.addEventListener("keydown", (e) => {
   if ((e.key === "Escape" || e.keyCode === 27) && board.parentNode.classList.contains("board-full")) toggleBoardFull();
 });
@@ -760,6 +767,12 @@ function saveBoard() {
     cleanNodes[k] = { id: n.id, x: n.x, y: n.y, w: n.w, h: n.h, text: n.text, color: n.color, owner: n.owner };
   }
   localStorage.setItem("steamBoard", JSON.stringify({nodes: cleanNodes, links: linksData}));
+}
+
+// หลังโหลดโน้ต: ให้ลิงก์ชี้ id ที่ createNote คืนมา (id ที่ไม่ปลอดภัยถูกเปลี่ยนใหม่) และทิ้งลิงก์ที่ไม่มีโน้ตปลายทาง
+function remapLinks(idMap) {
+  const has = (k) => Object.prototype.hasOwnProperty.call(idMap, k);
+  linksData = (Array.isArray(linksData) ? linksData : []).filter(l => l && has(l.f) && has(l.t)).map(l => ({ f: idMap[l.f], t: idMap[l.t] }));
 }
 
 window.syncToCloud = () => {
@@ -792,7 +805,9 @@ window.syncFromCloud = () => {
     .then(function(data) {
       board.querySelectorAll(".note").forEach(e=>e.remove());
       nodesData = {}; linksData = data.links || [];
-      Object.values(data.nodes || {}).forEach(n => createNote(n.x, n.y, n.text, n.id, n.color, n.owner, n.w, n.h));
+      const idMap = {};
+      Object.values(data.nodes || {}).forEach(n => { idMap[n.id] = createNote(n.x, n.y, n.text, n.id, n.color, n.owner, n.w, n.h); });
+      remapLinks(idMap);
       drawLines();
       saveBoard();
       alert("✅ โหลดข้อมูลจากคลาวด์สำเร็จ!");
@@ -827,7 +842,10 @@ function createNote(x, y, text="", id=null, color="yellow", owner=null, w=150, h
     localStorage.setItem("steamUser", currentUser);
   }
   owner = owner || currentUser;
-  
+  // id ถูกต่อเข้า onmousedown/oninput ด้านล่าง — ถ้ามีอักขระแปลก (เช่น ' ") ให้สร้าง id ใหม่แทน
+  if(id != null && !/^[\w-]+$/.test(String(id))) id = null;
+  x = Number(x) || 0; y = Number(y) || 0; // x,y ถูกต่อเข้า SVG ใน drawLines
+
   if(!id){ id = "n" + Date.now(); var seq = 0; while(nodesData[id]) id = "n" + Date.now() + "_" + (++seq); }
   const el = document.createElement("div");
   el.className = "note";
@@ -880,7 +898,7 @@ function createNote(x, y, text="", id=null, color="yellow", owner=null, w=150, h
   el.ontouchstart = downFn;
   
   if (isNew) {
-    setTimeout(() => { const ce = el.querySelector('[contenteditable]'); if(ce) ce.focus(); }, 50);
+    setTimeout(() => { const ce = el.querySelector('[contenteditable]'); if(ce) ce.focus({preventScroll: true}); }, 50);
   }
   return id;
 }
@@ -949,8 +967,19 @@ const boardDownFn = (e) => {
 };
 board.addEventListener("mousedown", boardDownFn);
 board.addEventListener("touchstart", boardDownFn);
+// นิ้วที่สองแตะขณะกำลังลาก/ปรับขนาด/เชื่อมเส้นโน้ต: เลิกงานนั้นแล้วเริ่มหนีบ (capture เพื่อให้ทำงานแม้นิ้วที่สองแตะบนโน้ต)
+board.addEventListener("touchstart", (e) => {
+  if (e.touches.length < 2 || !(isDragging || isLinking || isResizing)) return;
+  if (isDragging && nodesData[isDragging]) nodesData[isDragging].el.classList.remove("dragging");
+  isDragging = null; isLinking = null; isResizing = null;
+  saveBoard(); drawLines();
+  startPinch(e.touches);
+  e.stopPropagation();
+}, true);
 board.addEventListener("gesturestart", (e) => e.preventDefault()); // iOS: กันซูมทั้งหน้าเว็บตอนหนีบบนกระดาน
 board.addEventListener("wheel", (e) => {
+  // ซูมเมื่อกด Ctrl/⌘ (รวมหนีบ trackpad ที่ส่ง ctrlKey) หรือในโหมดเต็มจอ — นอกนั้นปล่อยให้หน้าเว็บเลื่อนตามปกติ
+  if (!(e.ctrlKey || e.metaKey || board.parentNode.classList.contains("board-full"))) return;
   e.preventDefault();
   let dy = e.deltaY * (e.deltaMode === 1 ? 16 : (e.deltaMode === 2 ? 400 : 1));
   dy = Math.max(-100, Math.min(100, dy));
@@ -964,8 +993,8 @@ const moveFn = (e) => {
     if (e.touches && e.touches.length >= 2) {
       const t = e.touches, rect = board.getBoundingClientRect();
       zoom = clampZoom(isPinching.z * touchDist(t) / isPinching.d);
-      panX = (t[0].clientX + t[1].clientX) / 2 - rect.left - isPinching.wx * zoom;
-      panY = (t[0].clientY + t[1].clientY) / 2 - rect.top - isPinching.wy * zoom;
+      panX = (t[0].clientX + t[1].clientX) / 2 - rect.left - board.clientLeft - isPinching.wx * zoom;
+      panY = (t[0].clientY + t[1].clientY) / 2 - rect.top - board.clientTop - isPinching.wy * zoom;
       applyView();
     }
     return;
@@ -1041,7 +1070,10 @@ try {
   if (b) {
     const data = JSON.parse(b);
     linksData = data.links || [];
-    Object.values(data.nodes || {}).forEach(n => createNote(n.x, n.y, n.text, n.id, n.color || "yellow", n.owner || "", n.w, n.h));
+    const idMap = {};
+    Object.values(data.nodes || {}).forEach(n => { idMap[n.id] = createNote(n.x, n.y, n.text, n.id, n.color || "yellow", n.owner || "", n.w, n.h); });
+    remapLinks(idMap);
+    saveBoard();
     drawLines();
   }
 } catch(e) {}
@@ -1098,21 +1130,21 @@ window.fetchLibrary = () => {
         return;
       }
       
-      $("#libraryGrid").innerHTML = sharedLibraryData.map(item => `
+      $("#libraryGrid").innerHTML = sharedLibraryData.map(item => { const sid = libId(item); return `
         <div class="card" style="border:1px solid #e2e8f0; box-shadow:none;">
           <h3 style="margin-top:0">${esc(item.title)}</h3>
           <p class="muted" style="font-size:12px; margin-bottom:8px">โดย: 👤 <b>${esc(item.author)}</b> | วิชา: ${esc(item.subject)}</p>
           <div style="display:flex; gap:8px; font-size:11px; margin-bottom:12px;">
-            <span style="background:#dbeafe; color:#1e40af; padding:2px 6px; border-radius:4px;">👁️ เข้าดู ${item.views || 0} ครั้ง</span>
-            <span style="background:#dcfce3; color:#166534; padding:2px 6px; border-radius:4px;">⬇️ นำไปใช้ ${item.loads || 0} ครั้ง</span>
+            <span style="background:#dbeafe; color:#1e40af; padding:2px 6px; border-radius:4px;">👁️ เข้าดู ${Number(item.views) || 0} ครั้ง</span>
+            <span style="background:#dcfce3; color:#166534; padding:2px 6px; border-radius:4px;">⬇️ นำไปใช้ ${Number(item.loads) || 0} ครั้ง</span>
           </div>
           <div style="display:flex; gap:8px;">
-            <button class="btn alt" style="flex:1; padding:4px;" onclick="viewPlan('${item.id}')">👁️ ดูไอเดีย</button>
-            <button class="btn" style="flex:1; padding:4px;" onclick="loadSharedPlan('${item.id}')">⬇️ โหลดมาใช้</button>
+            <button class="btn alt" style="flex:1; padding:4px;" onclick="viewPlan('${sid}')">👁️ ดูไอเดีย</button>
+            <button class="btn" style="flex:1; padding:4px;" onclick="loadSharedPlan('${sid}')">⬇️ โหลดมาใช้</button>
           </div>
-          <div id="preview-${item.id}" style="display:none; margin-top:12px; font-size:12px; background:#f8fafc; padding:8px; border-radius:4px; max-height:200px; overflow-y:auto;"></div>
+          <div id="preview-${sid}" style="display:none; margin-top:12px; font-size:12px; background:#f8fafc; padding:8px; border-radius:4px; max-height:200px; overflow-y:auto;"></div>
         </div>
-      `).join("");
+      `; }).join("");
     })
     .catch(function(e) { 
       $("#libraryGrid").innerHTML = "<p style='color:red'>❌ โหลดข้อมูลไม่สำเร็จ: " + e.message + "</p>"; 
@@ -1126,9 +1158,12 @@ window.trackAction = (id, type) => {
   fetch(url, { method: "POST", body: JSON.stringify({action: "track", id, type}), headers: {"Content-Type": "text/plain;charset=utf-8"} }).catch(e=>console.log(e));
 };
 
+// id ของแผนในคลังที่กรองแล้ว (ใช้ต่อเข้า onclick/id ของ element และใช้ค้นแผนกลับ)
+function libId(item) { return String((item && item.id) || "").replace(/[^\w-]/g, ""); }
+
 window.viewPlan = (id) => {
-  trackAction(id, "view");
-  const found = window.sharedLibraryData.find(x => x.id === id);
+  const found = window.sharedLibraryData.find(x => libId(x) === id);
+  trackAction(found ? found.id : id, "view");
   const pData = found ? found.data : null;
   if(pData) {
     const pre = document.getElementById("preview-"+id);
@@ -1150,9 +1185,9 @@ window.viewPlan = (id) => {
 
 window.loadSharedPlan = (id) => {
   if(!confirm("การโหลดข้อมูลจะทับแผนเดิมที่คุณกำลังพิมพ์อยู่ ยืนยันหรือไม่?")) return;
-  trackAction(id, "load");
-  
-  const found = window.sharedLibraryData.find(x => x.id === id);
+  const found = window.sharedLibraryData.find(x => libId(x) === id);
+  trackAction(found ? found.id : id, "load");
+
   const pData = found ? found.data : null;
   if(pData) {
     fill(pData);

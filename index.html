@@ -88,7 +88,7 @@
 </head>
 <body>
 <header style="position:relative">
-  <button class="btn alt" style="position:absolute; top:16px; right:16px; font-size:12px; padding:4px 8px;" onclick="window.location.href = window.location.pathname + '?v=' + new Date().getTime()">🔄 อัปเดตเวอร์ชัน (v.10)</button>
+  <button class="btn alt" style="position:absolute; top:16px; right:16px; font-size:12px; padding:4px 8px;" onclick="window.location.href = window.location.pathname + '?v=' + new Date().getTime()">🔄 อัปเดตเวอร์ชัน (v.11)</button>
   <h1>🎨 STEAM Active Learning Designer</h1>
   <p>เครื่องมือช่วยครูออกแบบแผนการสอนแบบ STEAM ด้วยกระบวนการ Design Thinking 6 ขั้น</p>
   <nav role="tablist">
@@ -157,8 +157,8 @@
       </div>
       <div style="display:flex; gap:6px; align-items:center; flex-wrap:wrap;">
 
-        <button class="btn" id="addNoteBtn" style="padding:6px 10px; font-size:12px;">➕ เพิ่มโพสต์อิท</button>
-        <button class="btn alt" id="clearBoardBtn" style="padding:6px 10px; font-size:12px;">🗑️ ล้างกระดาน</button>
+        <button class="btn" id="addNoteBtn" onclick="createNote(50, 50, 'ไอเดียใหม่')" ontouchstart="event.preventDefault(); createNote(50, 50, 'ไอเดียใหม่')" style="padding:6px 10px; font-size:12px;">➕ เพิ่มโพสต์อิท</button>
+        <button class="btn alt" id="clearBoardBtn" onclick="if(confirm('ล้างกระดานทั้งหมด?')) { nodesData={}; linksData=[]; document.querySelectorAll('.note').forEach(e=>e.remove()); saveBoard(); drawLines(); }" style="padding:6px 10px; font-size:12px;">🗑️ ล้างกระดาน</button>
       </div>
     </div>
     <div id="board" style="flex:1; position:relative; background:url('data:image/svg+xml;utf8,<svg width=\'20\' height=\'20\' xmlns=\'http://www.w3.org/2000/svg\'><circle cx=\'2\' cy=\'2\' r=\'1\' fill=\'%23cbd5e1\'/></svg>') #f8fafc; border:1px solid #cbd5e1; border-radius:8px; overflow:hidden; touch-action:none; margin-top:8px;">
@@ -241,6 +241,7 @@
 </main>
 
 <script>
+if (!Object.values) Object.values = function(obj) { return Object.keys(obj).map(function(e) { return obj[e] }); };
 const SAMPLES = [
 { id:"phy-full", group:"ฟิสิกส์ ม.4", variant:"STEAM เต็มรูปแบบ", data:{
   title:"กังหันลมผลิตไฟฟ้าขนาดเล็กเพื่อชุมชน", grade:"ม.4-6", subject:"ฟิสิกส์ (พลังงาน)", hours:10,
@@ -608,7 +609,7 @@ function drawRadar(v){
   const c=$("#radar"), x=c.getContext("2d"), cx=160, cy=155, R=110;
   const pt=(i,r)=>{const a=-Math.PI/2+i*2*Math.PI/5; return [cx+r*Math.cos(a), cy+r*Math.sin(a)];};
   x.clearRect(0,0,c.width,c.height); x.strokeStyle="#e5e7eb";
-  for(let k=1;k<=4;k++){ x.beginPath(); L.forEach((_,i)=>{const [a,b]=pt(i,R*k/4); i?x.lineTo(a,b):x.moveTo(a,b);}); x.closePath(); x.stroke(); }
+  for(var k=1;k<=4;k++){ x.beginPath(); L.forEach((_,i)=>{const [a,b]=pt(i,R*k/4); i?x.lineTo(a,b):x.moveTo(a,b);}); x.closePath(); x.stroke(); }
   L.forEach((l,i)=>{ const [a,b]=pt(i,R); x.beginPath(); x.moveTo(cx,cy); x.lineTo(a,b); x.stroke();
     const [lx,ly]=pt(i,R+22); x.fillStyle=COLORS[l]; x.font="bold 18px sans-serif"; x.textAlign="center"; x.textBaseline="middle"; x.fillText(l,lx,ly); });
   x.beginPath(); L.forEach((l,i)=>{const [a,b]=pt(i,R*v[l]/100); i?x.lineTo(a,b):x.moveTo(a,b);}); x.closePath();
@@ -684,7 +685,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
 function saveBoard() {
   const cleanNodes = {};
-  for(let k in nodesData) {
+  for(var k in nodesData) {
     const n = nodesData[k];
     cleanNodes[k] = { id: n.id, x: n.x, y: n.y, w: n.w, h: n.h, text: n.text, color: n.color, owner: n.owner };
   }
@@ -696,7 +697,7 @@ window.syncToCloud = () => {
   if(!url) return alert("กรุณาวางลิงก์ Google Sheets Web App ก่อนครับ");
   const btn = event.target; const oldText = btn.textContent; btn.textContent = "⏳ กำลังเซฟ...";
   const cleanNodes = {};
-  for(let k in nodesData) {
+  for(var k in nodesData) {
     const n = nodesData[k];
     cleanNodes[k] = { id: n.id, x: n.x, y: n.y, w: n.w, h: n.h, text: n.text, color: n.color, owner: n.owner };
   }
@@ -752,7 +753,7 @@ window.branchNote = (parentId) => {
 function createNote(x, y, text="", id=null, color="yellow", owner=null, w=150, h="auto") {
   const isNew = !id;
   if(isNew && !currentUser) {
-    currentUser = prompt("คุณชื่ออะไร? (ใช้ระบุตัวตนความเป็นเจ้าของไอเดีย)") || "ไม่ระบุชื่อ";
+    currentUser = "คุณครู";
     localStorage.setItem("steamUser", currentUser);
   }
   owner = owner || currentUser;
@@ -894,13 +895,9 @@ const upFn = (e) => {
 window.addEventListener("mouseup", upFn);
 window.addEventListener("touchend", upFn);
 
-$("#addNoteBtn").onclick = () => createNote(50, 50, "ไอเดียใหม่");
-$("#clearBoardBtn").onclick = () => {
-  if(confirm("ล้างกระดานไอเดียทั้งหมด?")){
-    board.querySelectorAll(".note").forEach(e=>e.remove());
-    nodesData={}; linksData=[]; saveBoard(); drawLines();
-  }
-};
+
+
+
 
 try {
   const b = localStorage.getItem("steamBoard");
@@ -1104,7 +1101,7 @@ window.renderCurriculum = () => {
     
     // Normalize keys just in case
     const normalizedData = {};
-    for (let k in CURRICULUM_DATA) {
+    for (var k in CURRICULUM_DATA) {
       normalizedData[k.trim()] = CURRICULUM_DATA[k];
     }
     

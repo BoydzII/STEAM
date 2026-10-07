@@ -88,7 +88,7 @@
 </head>
 <body>
 <header style="position:relative">
-  <button class="btn alt" style="position:absolute; top:16px; right:16px; font-size:12px; padding:4px 8px;" onclick="window.location.href = window.location.pathname + '?v=' + new Date().getTime()">🔄 อัปเดตเวอร์ชัน (v.9)</button>
+  <button class="btn alt" style="position:absolute; top:16px; right:16px; font-size:12px; padding:4px 8px;" onclick="window.location.href = window.location.pathname + '?v=' + new Date().getTime()">🔄 อัปเดตเวอร์ชัน (v.10)</button>
   <h1>🎨 STEAM Active Learning Designer</h1>
   <p>เครื่องมือช่วยครูออกแบบแผนการสอนแบบ STEAM ด้วยกระบวนการ Design Thinking 6 ขั้น</p>
   <nav role="tablist">
@@ -156,9 +156,7 @@
         <p class="muted" style="margin:4px 0 0 0">ดับเบิลคลิกสร้างโพสต์อิท, ลากเพื่อย้าย, ลากจุดสีน้ำเงินเพื่อวาดเส้นเชื่อมโยง</p>
       </div>
       <div style="display:flex; gap:6px; align-items:center; flex-wrap:wrap;">
-        <input type="text" id="gasUrl" value="https://script.google.com/macros/s/AKfycbyz4RrTJs4jFg9Lvr_6qK6YGqcbRbwV_HVJ4xoyXbjzDjIklbAQjEP1_A73MWRoLxeu/exec" placeholder="🔗 วางลิงก์ Google Sheets Web App ที่นี่" style="width:200px; padding:6px; font-size:12px; border:1px solid #ccc; border-radius:4px;" onchange="localStorage.setItem('gasUrl', this.value)">
-        <button class="btn" onclick="syncToCloud()" style="background:#8b5cf6; padding:6px 10px; font-size:12px;">☁️ เซฟขึ้นคลาวด์</button>
-        <button class="btn alt" onclick="syncFromCloud()" style="padding:6px 10px; font-size:12px;">⬇️ โหลดข้อมูล</button>
+
         <button class="btn" id="addNoteBtn" style="padding:6px 10px; font-size:12px;">➕ เพิ่มโพสต์อิท</button>
         <button class="btn alt" id="clearBoardBtn" style="padding:6px 10px; font-size:12px;">🗑️ ล้างกระดาน</button>
       </div>
